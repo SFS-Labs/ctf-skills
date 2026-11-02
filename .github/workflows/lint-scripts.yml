@@ -2,15 +2,7 @@
 name: Lint Scripts
 
 'on':
-  pull_request:
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/**'
-      - '.github/workflows/lint-scripts.yml'
   workflow_dispatch:
-
 concurrency:
   group: lint-scripts-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
