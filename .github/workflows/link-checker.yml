@@ -2,18 +2,7 @@
 name: Link Checker
 
 'on':
-  pull_request:
-  push:
-    branches:
-      - main
-    paths:
-      - '**/*.md'
-      - '.github/workflows/link-checker.yml'
-      - '.lychee.toml'
-  schedule:
-    - cron: '0 8 * * 1' # Weekly on Monday at 08:00 UTC
   workflow_dispatch:
-
 concurrency:
   group: link-checker-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
