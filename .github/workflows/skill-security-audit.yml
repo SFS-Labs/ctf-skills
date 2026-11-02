@@ -2,21 +2,7 @@
 name: Skill Security Audit
 
 'on':
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths-ignore:
-      - '.github/**'
-      - 'scripts/**'
-      - 'tests/**'
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '.github/**'
-      - 'scripts/**'
-      - 'tests/**'
   workflow_dispatch:
-
 concurrency:
   group: security-audit-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
