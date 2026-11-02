@@ -1,15 +1,6 @@
 name: Forward public activity
-on:
-  push:
-  pull_request:
-    types: [opened, edited, synchronize, closed, reopened, ready_for_review, converted_to_draft]
-  issues:
-    types: [opened, edited, closed, reopened]
-  release:
-    types: [published]
-  create:
-  delete:
-
+'on':
+  workflow_dispatch:
 permissions: {}
 
 jobs:
