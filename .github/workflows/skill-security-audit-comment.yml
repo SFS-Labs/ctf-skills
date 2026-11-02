@@ -2,11 +2,7 @@
 name: Post Security Audit Comment
 
 'on':
-  workflow_run:
-    workflows: ["Skill Security Audit"]
-    types:
-      - completed
-
+  workflow_dispatch:
 jobs:
   comment:
     name: Post audit results
