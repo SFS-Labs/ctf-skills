@@ -13,6 +13,8 @@ pairs_with: [not-so-smart-contracts, smart-contract-best-practices, slowmist-kno
 
 **Repo:** `OpenZeppelin/ethernaut` · **Layer:** L8 · **Klasse:** JS · **Bezogen:** ja (branch `master`, Lizenz AGPL-3.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo
+
 ## Zweck
 CTF-Korpus kanonischer Bug-Klassen.
 
@@ -20,16 +22,16 @@ CTF-Korpus kanonischer Bug-Klassen.
 durchgehend: Musterabgleich gegen bekannte Bug-Klassen und Audit-Erfahrung.
 
 ## Kommando
-`ethernaut --help` (npm global)
+kein Kommando — kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo; Quelle: `vendor/OpenZeppelin/ethernaut`
 
 ## Deutung der Ausgabe
-Graph/Report als Landkarte; Aussagen über Laufzeitverhalten sind daraus nicht ableitbar.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - JS-Werkzeuge sehen nur, was sie parsen; Build-/Deploy-Kontext fehlt oft.
 - Aktualitaet und projektspezifische Besonderheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `seal-911`, `seal-frameworks`, `blockchain-security-contacts`.
 Nach diesem Skill weiter mit Layer L9.
 

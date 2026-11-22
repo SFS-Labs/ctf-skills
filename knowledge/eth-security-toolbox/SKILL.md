@@ -13,6 +13,8 @@ pairs_with: [slither, surya, bytecode-verifier, slither-mcp, echidna, medusa, pr
 
 **Repo:** `trailofbits/eth-security-toolbox` · **Layer:** L2 · **Klasse:** DK · **Bezogen:** ja (branch `master`, Lizenz AGPL-3.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** braucht Docker; auf dieser Maschine nicht lauffaehig
+
 ## Zweck
 Ein-Container-Werkbank (Docker-Fallback).
 
@@ -23,13 +25,13 @@ Breite zuerst: alle In-Scope-Artefakte statisch abklopfen.
 Docker erforderlich — Rezept liegt in `recipes/eth-security-toolbox.sh`, hier nicht lauffähig
 
 ## Deutung der Ausgabe
-—
+keine Ausgabe — auf dieser Maschine nicht lauffaehig; Rezept in `recipes/eth-security-toolbox.sh`.
 
 ## Blinde Flecken
 - braucht Docker; auf dieser Maschine nicht lauffaehig -> nur Referenz.
 - sieht zeitliche, oekonomische und Cross-Contract-Fehler nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `slither`, `surya`, `bytecode-verifier`, `slither-mcp`, `echidna`, `medusa`, `properties`, `scribble`.
 Nach diesem Skill weiter mit Layer L3.
 
