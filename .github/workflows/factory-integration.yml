@@ -1,0 +1,61 @@
+name: Factory integration and CTF regressions
+
+on:
+  push:
+    branches:
+      - integration/unify-ctf-skill-factory
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install test runner
+        run: python -m pip install pytest
+      - name: CTF and Factory unit regression tests
+        run: python -m pytest tests/ benchmarks/tests/ -q
+      - name: Factory manifest, cards and executable modes
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path.cwd()
+          data = json.loads((root / "manifest.json").read_text())
+          cards = data["skills"]
+          slugs = [x["slug"] for x in cards]
+          assert data["count"] == len(cards) == 134, "expected 134 factory cards"
+          assert len(set(slugs)) == len(slugs), "duplicate slugs"
+          missing = [s for s in slugs if not (root / "knowledge" / s / "SKILL.md").is_file()]
+          assert not missing, f"missing cards: {missing}"
+          assert len(list((root / "knowledge").glob("*/SKILL.md"))) == 134
+          assert len((root / "repos.tsv").read_text().splitlines()) == 134
+          print("PASS: 134 unique manifest entries, knowledge cards, and repo references")
+          PY
+          for tool in skill fetch install_bin doctor gen_skills push smoke; do
+            test -x "bin/$tool" || exit 1
+          done
+          for script in recipes/*.sh benchmarks/*.sh; do
+            bash -n "$script" || exit 1
+          done
+      - name: Factory router and redaction self-test
+        run: |
+          python3 bin/skill list --layer=L3 > /dev/null
+          python3 bin/skill show slither > /dev/null
+          python3 bin/skill find reentrancy > /dev/null
+          python3 bin/skill plan "solidity upgrade" > /dev/null
+          python3 bin/push --selftest

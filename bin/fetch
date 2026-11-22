@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""fetch — holt alle Repos aus repos.tsv als Tarball nach vendor/<org>/<repo>.
+
+Ein Codepfad fuer public UND private Repos: GitHub-API-Tarball mit Bearer-Token.
+Idempotent: vorhandenes .fetched wird uebersprungen (--force erzwingt neu).
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+HOME = os.path.expanduser("~")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+TSV = os.path.join(ROOT, "repos.tsv")
+VENDOR = os.path.join(ROOT, "vendor")
+LOGDIR = os.path.join(ROOT, "logs")
+TOKEN_FILE = os.path.join(HOME, ".config", "gh-token")
+FORCE = "--force" in sys.argv
+limit = next((int(a.split("=")[1]) for a in sys.argv if a.startswith("--limit=")), 0)
+
+_lock = threading.Lock()
+_counter = {"done": 0, "skip": 0, "fail": 0}
+
+
+def token():
+    try:
+        with open(TOKEN_FILE) as fh:
+            return fh.read().strip()
+    except OSError:
+        return os.environ.get("GITHUB_TOKEN", "")
+
+
+TOK = token()
+
+
+def log(msg):
+    line = time.strftime("%H:%M:%S ") + msg
+    print(line, flush=True)
+    with _lock:
+        with open(os.path.join(LOGDIR, "fetch.log"), "a") as fh:
+            fh.write(line + "\n")
+
+
+def api(path):
+    out = subprocess.run(
+        ["curl", "-sS", "-H", f"Authorization: Bearer {TOK}",
+         "-H", "Accept: application/vnd.github+json", f"https://api.github.com{path}"],
+        capture_output=True, text=True, timeout=120)
+    try:
+        return json.loads(out.stdout or "{}")
+    except json.JSONDecodeError:
+        return {}
+
+
+def fetch(row):
+    slug, repo, cls = row[0], row[1], row[2]
+    org, name = repo.split("/", 1)
+    dest = os.path.join(VENDOR, org, name)
+    marker = os.path.join(dest, ".fetched")
+    if os.path.exists(marker) and not FORCE:
+        with _lock:
+            _counter["skip"] += 1
+        return
+    meta = api(f"/repos/{repo}")
+    if meta.get("message") == "Not Found":
+        log(f"FAIL {slug} {repo} -> 404 (kein Zugriff oder falscher Name)")
+        with _lock:
+            _counter["fail"] += 1
+        return
+    branch = meta.get("default_branch") or "HEAD"
+    tmp = dest + ".tar.gz"
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    for attempt in (1, 2, 3):
+        r = subprocess.run(
+            ["curl", "-sSL", "--retry", "2", "--max-time", "1800",
+             "-H", f"Authorization: Bearer {TOK}",
+             "-o", tmp, f"https://api.github.com/repos/{repo}/tarball/{branch}"],
+            capture_output=True, text=True)
+        if r.returncode == 0 and os.path.exists(tmp) and os.path.getsize(tmp) > 1024:
+            break
+        time.sleep(2 * attempt)
+    if not (os.path.exists(tmp) and os.path.getsize(tmp) > 1024):
+        log(f"FAIL {slug} {repo} -> download fehlgeschlagen")
+        with _lock:
+            _counter["fail"] += 1
+        return
+    shutil.rmtree(dest, ignore_errors=True)
+    os.makedirs(dest, exist_ok=True)
+    x = subprocess.run(["tar", "-xzf", tmp, "-C", dest, "--strip-components=1"],
+                       capture_output=True, text=True)
+    size = os.path.getsize(tmp)
+    os.remove(tmp)
+    if x.returncode != 0:
+        log(f"FAIL {slug} {repo} -> tar: {x.stderr.strip()[:160]}")
+        with _lock:
+            _counter["fail"] += 1
+        return
+    lic = (meta.get("license") or {}).get("spdx_id")
+    with open(marker, "w") as fh:
+        json.dump({"repo": repo, "slug": slug, "class": cls, "branch": branch,
+                   "archived": meta.get("archived"), "license": lic,
+                   "pushed_at": meta.get("pushed_at"), "size_kb": meta.get("size"),
+                   "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                   "tarball_bytes": size}, fh, indent=1)
+    with _lock:
+        _counter["done"] += 1
+        n = _counter["done"] + _counter["skip"] + _counter["fail"]
+    log(f"OK   {slug} {repo} @{branch} {size/1048576:.1f}MB [{n}/{TOTAL}]")
+
+
+rows = []
+with open(TSV) as fh:
+    for line in fh:
+        line = line.rstrip("\n")
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        rows.append(line.split("\t"))
+if limit:
+    rows = rows[:limit]
+TOTAL = len(rows)
+os.makedirs(VENDOR, exist_ok=True)
+os.makedirs(LOGDIR, exist_ok=True)
+log(f"START {TOTAL} repos, auth={'yes' if TOK else 'no'}")
+started = time.time()
+with ThreadPoolExecutor(max_workers=4) as pool:
+    list(pool.map(fetch, rows))
+log(f"DONE ok={_counter['done']} skip={_counter['skip']} fail={_counter['fail']} "
+    f"in {time.time()-started:.0f}s")
+sys.exit(1 if _counter["fail"] else 0)

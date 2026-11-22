@@ -1,0 +1,390 @@
+#!/usr/bin/env python3
+"""smoke — fuehrt die drei Beweislaeufe automatisch aus und schreibt das Ergebnis nach STATUS.md.
+
+Was hier passiert (und warum):
+  cryo/diffusc/daedaluzz sind nicht "installiert", sondern bewiesen. Ein --version
+beweist nichts. Dieses Skript wiederholt die echten Laeufe in temporaeren
+Verzeichnissen, prueft die Artefakte inhaltlich (Parquet lesen, Contract im
+generierten Solidity, solc-Kompilat) und haelt Ergebnis + Dauer + Kernausgabe fest.
+
+Vierte Pruefung: `bin/push --selftest` — damit bleibt ein Regress in der
+Token-Redaktion sichtbar, statt erst beim naechsten echten Push aufzufallen.
+Sie braucht keine Credentials und kein Netz (arbeitet mit einem synthetischen Token).
+
+Aufrufe:
+  bin/smoke                     # alle vier
+  bin/smoke cryo daedaluzz      # Auswahl
+  bin/smoke --rpc URL           # anderer RPC (Default: ethereum-rpc.publicnode.com)
+  bin/smoke --keep              # Arbeitsverzeichnisse behalten und Pfad ausgeben
+  bin/smoke --no-install        # keinen Parquet-Validator nachinstallieren
+  bin/smoke --quiet             # nur die Zusammenfassung
+
+Status je Werkzeug:
+  OK    Beweis erbracht, Artefakt inhaltlich geprueft
+  SKIP  Umgebung fehlt (Binary/forge/solc/Netz) — mit konkretem Grund, kein falsches Rot
+  FAIL  Werkzeug laeuft, liefert aber nicht das erwartete Artefakt
+
+Ergebnis: logs/smoke.json (maschinenlesbar, nicht im Repo) + Block in STATUS.md
+zwischen <!-- smoke:begin --> und <!-- smoke:end -->; bin/doctor erhaelt den Block.
+Exit: 0 wenn kein FAIL, 1 wenn mindestens ein FAIL.
+"""
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+LOGS = os.path.join(ROOT, "logs")
+SMOKE_JSON = os.path.join(LOGS, "smoke.json")
+SMOKE_BEGIN = "<!-- smoke:begin -->"
+SMOKE_END = "<!-- smoke:end -->"
+DEFAULT_RPC = "https://ethereum-rpc.publicnode.com"
+FIXTURES = os.path.join(ROOT, "corpora", "smoke")
+PARQUET_COLUMNS = ["block_number", "block_hash", "parent_hash", "timestamp",
+                   "chain_id", "gas_used", "gas_limit", "transaction_count"]
+
+PATH_EXTRA = ["~/.local/bin", "~/.foundry/bin", "~/.cargo/bin",
+              "~/.local/opt/go/bin", "~/.local/share/uv/tools/bin"]
+
+
+def env():
+    e = os.environ.copy()
+    extra = [os.path.expanduser(p) for p in PATH_EXTRA]
+    e["PATH"] = ":".join(extra + [e.get("PATH", "")])
+    return e
+
+
+def which(binary):
+    return shutil.which(binary, path=env()["PATH"])
+
+
+def run(cmd, cwd=None, timeout=300):
+    try:
+        r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env())
+        text = (r.stdout or "") + (("\n" + r.stderr) if r.stderr else "")
+        return r.returncode, text
+    except subprocess.TimeoutExpired:
+        return 124, "Timeout nach %ss" % timeout
+    except OSError as exc:
+        return 127, "%s: %s" % (type(exc).__name__, exc)
+
+
+def tail(text, lines=6, width=4000):
+    t = "\n".join([l for l in text.strip().splitlines() if l.strip()][-lines:])
+    return t[-width:]
+
+
+def result(tool, status, seconds, command, evidence, note="", artifacts=None):
+    return {"tool": tool, "status": status, "seconds": round(seconds, 1),
+            "command": command, "evidence": evidence, "note": note,
+            "artifacts": artifacts or {}}
+
+
+def skip(tool, seconds, command, reason):
+    return result(tool, "SKIP", seconds, command, reason)
+
+
+# --- Parquet-Pruefung ---------------------------------------------------------
+def parquet_python(install_ok, log):
+    """Interpreter, der pyarrow importieren kann — sonst None (strukturelle Pruefung)."""
+    py = os.path.join(ROOT, "venvs", "smoke", "bin", "python")
+    def usable(p):
+        return os.path.exists(p) and run([p, "-c", "import pyarrow"], timeout=60)[0] == 0
+    if usable(py):
+        return py
+    uv = which("uv")
+    if not install_ok or not uv:
+        return None
+    log("[setup] pyarrow fehlt -> venvs/smoke anlegen (userspace, keine Systemdatei)")
+    run([uv, "venv", os.path.join(ROOT, "venvs", "smoke")], timeout=180)
+    run([uv, "pip", "install", "--python", py, "pyarrow"], timeout=600)
+    return py if usable(py) else None
+
+
+def check_parquet(path, py, log):
+    """Inhaltlich lesen, wenn moeglich; sonst strukturell pruefen und das benennen."""
+    if py:
+        code = (
+            "import json,sys,pyarrow.parquet as pq\n"
+            "t=pq.read_table(sys.argv[1])\n"
+            "d=t.to_pydict()\n"
+            "print(json.dumps({'rows':t.num_rows,'cols':t.num_columns,"
+            "'names':list(t.column_names),'block_number':d.get('block_number')}))\n"
+        )
+        rc, out = run([py, "-c", code, path], timeout=120)
+        if rc == 0:
+            try:
+                info = json.loads(out.strip().splitlines()[-1])
+            except (ValueError, IndexError):
+                info = None
+            if info:
+                ok = (info["rows"] == 1 and info["cols"] == 8
+                      and list(info["block_number"] or []) == [19000000])
+                missing = [c for c in PARQUET_COLUMNS if c not in info["names"]]
+                return ok, info, missing
+    # Strukturell: PAR1-Magic an Anfang und Ende, Spaltennamen stehen im Thrift-Footer.
+    with open(path, "rb") as fh:
+        head = fh.read(4)
+        fh.seek(-4, os.SEEK_END)
+        tail_bytes = fh.read(4)
+        fh.seek(0)
+        blob = fh.read()
+    missing = [c for c in PARQUET_COLUMNS if c.encode() not in blob]
+    ok = head == b"PAR1" and tail_bytes == b"PAR1" and not missing
+    return ok, {"rows": None, "cols": len(PARQUET_COLUMNS) - len(missing)}, missing
+
+
+# --- Die drei Beweise ---------------------------------------------------------
+def check_cryo(wd, rpc, install_ok, log):
+    t0 = time.time()
+    binary = which("cryo")
+    cmd = "cryo blocks --blocks 19000000 -r %s -o <tmp>/out" % rpc
+    if not binary:
+        return skip("cryo", 0, cmd, "cryo nicht im PATH — Rezept: recipes/cryo-build.sh")
+    outdir = os.path.join(wd, "out")
+    os.makedirs(outdir, exist_ok=True)
+    rc, txt = run([binary, "blocks", "--blocks", "19000000", "-r", rpc, "-o", outdir], timeout=420)
+    files = [os.path.join(outdir, f) for f in os.listdir(outdir) if f.endswith(".parquet")]
+    secs = time.time() - t0
+    if not files:
+        if re.search(r"(525|502|503|timed out|Timeout|Connection|error sending request|Failed to connect)",
+                     txt, re.I):
+            return skip("cryo", secs, cmd, "RPC %s nicht erreichbar: %s" % (rpc, tail(txt, 2, 300)))
+        return result("cryo", "FAIL", secs, cmd, tail(txt), "kein Parquet erzeugt")
+    path = files[0]
+    py = parquet_python(install_ok, log)
+    ok, info, missing = check_parquet(path, py, log)
+    size = os.path.getsize(path)
+    if not ok:
+        return result("cryo", "FAIL", secs, cmd,
+                      "Parquet unerwartet: rows=%s cols=%s fehlend=%s" % (info["rows"], info["cols"], missing),
+                      artifacts={"file": os.path.basename(path), "bytes": size})
+    if info["rows"] is not None:
+        evidence = "%d Row, %d Spalten, block_number=%s (%d B)" % (
+            info["rows"], info["cols"], info["block_number"][0], size)
+        note = "pyarrow-Read"
+    else:
+        evidence = "PAR1-Footer ok, alle %d Spaltennamen vorhanden (%d B)" % (info["cols"], size)
+        note = "strukturell (pyarrow fehlt; --no-install gesetzt?)"
+    return result("cryo", "OK", secs, cmd, evidence, note,
+                  {"file": os.path.basename(path), "bytes": size})
+
+
+def check_diffusc(wd, log):
+    t0 = time.time()
+    binary = which("diffusc")
+    cmd = "diffusc <tmp>/VaultV1.sol <tmp>/VaultV2.sol -d <tmp>/out"
+    if not binary:
+        return skip("diffusc", 0, cmd, "diffusc nicht im PATH — Rezept: recipes/diffusc-setup.sh")
+    if not which("forge"):
+        return skip("diffusc", 0, cmd,
+                    "forge fehlt im PATH — crytic-compile waehlt sonst das Foundry-Plugin (FileNotFoundError)")
+    work = os.path.join(wd, "diffusc")
+    os.makedirs(work, exist_ok=True)
+    outdir = os.path.join(work, "out")
+    os.makedirs(outdir, exist_ok=True)
+    for name in ("VaultV1.sol", "VaultV2.sol"):
+        shutil.copy2(os.path.join(FIXTURES, name), os.path.join(work, name))
+    # Absolute Pfade sind Pflicht: slither_provider.py:155 macht
+    # path.rsplit(os.sep, 1)[1] und wirft bei "VaultV1.sol" IndexError.
+    v1 = os.path.join(work, "VaultV1.sol")
+    v2 = os.path.join(work, "VaultV2.sol")
+    rc, txt = run([binary, v1, v2, "-d", outdir], cwd=work, timeout=300)
+    secs = time.time() - t0
+    gen = os.path.join(outdir, "DiffFuzzUpgrades.sol")
+    cfg = os.path.join(outdir, "CryticConfig.yaml")
+    if not os.path.exists(gen):
+        return result("diffusc", "FAIL", secs, cmd, tail(txt),
+                      "DiffFuzzUpgrades.sol fehlt (rc=%s)" % rc)
+    body = open(gen, errors="ignore").read()
+    gsize = os.path.getsize(gen)
+    problems = []
+    if "contract" not in body:
+        problems.append("kein 'contract' im generierten Solidity")
+    if gsize < 500:
+        problems.append("nur %d B" % gsize)
+    if not os.path.exists(cfg) or os.path.getsize(cfg) == 0:
+        problems.append("CryticConfig.yaml fehlt/leer")
+    if problems:
+        return result("diffusc", "FAIL", secs, cmd, "; ".join(problems),
+                      artifacts={"file": "DiffFuzzUpgrades.sol", "bytes": gsize})
+    evidence = "DiffFuzzUpgrades.sol (%d B) + CryticConfig.yaml (%d B)" % (
+        gsize, os.path.getsize(cfg))
+    return result("diffusc", "OK", secs, cmd, evidence, "",
+                  {"file": "DiffFuzzUpgrades.sol", "bytes": gsize})
+
+
+def check_daedaluzz(wd, log):
+    t0 = time.time()
+    binary = which("daedaluzz")
+    cmd = "daedaluzz  (im leeren Verzeichnis) -> generated-maze.sol"
+    if not binary:
+        return skip("daedaluzz", 0, cmd, "daedaluzz nicht im PATH — Rezept: recipes/daedaluzz-build.sh")
+    work = os.path.join(wd, "daedaluzz")
+    os.makedirs(work, exist_ok=True)
+    rc, txt = run([binary], cwd=work, timeout=180)
+    gen = os.path.join(work, "generated-maze.sol")
+    if not os.path.exists(gen):
+        return result("daedaluzz", "FAIL", round(time.time() - t0, 1), cmd, tail(txt),
+                      "generated-maze.sol fehlt (rc=%s)" % rc)
+    body = open(gen, errors="ignore").read()
+    size = os.path.getsize(gen)
+    problems = []
+    if size < 5000:
+        problems.append("nur %d B" % size)
+    if "pragma solidity" not in body:
+        problems.append("kein pragma solidity")
+    if "contract" not in body:
+        problems.append("kein contract")
+    solc = which("solc")
+    compiled = ""
+    if solc and not problems:
+        crc, cout = run([solc, "--bin", "generated-maze.sol"], cwd=work, timeout=180)
+        if crc != 0 or "Binary:" not in cout:
+            problems.append("solc-Kompilat fehlgeschlagen: %s" % tail(cout, 2, 400))
+        else:
+            version = re.search(r"Version:\s*([0-9.]+)", run([solc, "--version"])[1] or "")
+            compiled = ", solc %s kompiliert" % (version.group(1) if version else "?")
+    secs = time.time() - t0
+    if problems:
+        return result("daedaluzz", "FAIL", secs, cmd, "; ".join(problems),
+                      artifacts={"file": "generated-maze.sol", "bytes": size})
+    note = "" if solc else "solc fehlt — Generation geprueft, Kompilat nicht"
+    return result("daedaluzz", "OK", secs, cmd,
+                  "generated-maze.sol (%d B)%s" % (size, compiled), note,
+                  {"file": "generated-maze.sol", "bytes": size})
+
+
+def check_push(wd, log):
+    """Vierter Beweis: die Token-Redaktion selbst — ohne Credentials, ohne Netz."""
+    t0 = time.time()
+    script = os.path.join(ROOT, "bin", "push")
+    cmd = "bin/push --selftest"
+    if not os.path.exists(script):
+        return skip("push", 0, cmd, "bin/push fehlt")
+    rc, txt = run([sys.executable, script, "--selftest"], timeout=120)
+    secs = time.time() - t0
+    redacted = len(re.findall(r"^\s+ok\s", txt, re.M))
+    leaks = len(re.findall(r"^\s+LEAK", txt, re.M))
+    if rc != 0 or "bestanden" not in txt or leaks:
+        return result("push", "FAIL", secs, cmd, tail(txt, 3),
+                      "Redaktion unvollstaendig (%d LEAK)" % leaks)
+    return result("push", "OK", secs, cmd,
+                  "%d synthetische Lecks redigiert (Token, URL-Userinfo, Bearer, Query)" % redacted)
+
+
+# --- STATUS.md ----------------------------------------------------------------
+def render_block(results, run_at):
+    icon = {"OK": "OK", "FAIL": "**FAIL**", "SKIP": "SKIP"}
+    lines = [SMOKE_BEGIN, "", "## Letzter Smoke-Lauf — %s" % run_at, "",
+             "Automatisiert von `bin/smoke`: echte Laeufe in temporaeren Verzeichnissen, "
+             "Artefakte inhaltlich geprueft.", "",
+             "| Werkzeug | Ergebnis | Dauer | Beweis (Kernausgabe) |", "|---|---|---|---|"]
+    for r in results:
+        ev = " ".join(r["evidence"].split()).replace("|", "\\|")
+        if len(ev) > 220:
+            ev = ev[:217] + "…"
+        note = (" — %s" % " ".join(r["note"].split())) if r["note"] else ""
+        lines.append("| `%s` | %s | %.1f s | %s%s |" % (r["tool"], icon[r["status"]], r["seconds"], ev, note))
+    fails = [r["tool"] for r in results if r["status"] == "FAIL"]
+    skips = [r["tool"] for r in results if r["status"] == "SKIP"]
+    summary = "%d OK" % len([r for r in results if r["status"] == "OK"])
+    if skips:
+        summary += ", %d SKIP (%s)" % (len(skips), ", ".join(skips))
+    if fails:
+        summary += ", **%d FAIL (%s)**" % (len(fails), ", ".join(fails))
+    lines += ["", summary + ".", "",
+              "Wiederholen: `bin/smoke` — Kommandos im Detail: `bin/smoke --keep`.",
+              "", SMOKE_END]
+    return "\n".join(lines)
+
+
+def write_status(block):
+    path = os.path.join(ROOT, "STATUS.md")
+    try:
+        text = open(path).read()
+    except OSError:
+        text = "# STATUS\n"
+    i, j = text.find(SMOKE_BEGIN), text.find(SMOKE_END)
+    if i >= 0 and j > i:
+        text = text[:i] + block + text[j + len(SMOKE_END):]
+    else:
+        anchor = "\n## Bezug"
+        if anchor in text:
+            k = text.index(anchor)
+            text = text[:k] + "\n" + block + "\n" + text[k:]
+        else:
+            text = text.rstrip("\n") + "\n\n" + block + "\n"
+    open(path, "w").write(text)
+    return path
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(prog="smoke", description="Drei Beweislaeufe, Ergebnis in STATUS.md.")
+    ap.add_argument("tools", nargs="*", help="cryo diffusc daedaluzz (Default: alle)")
+    ap.add_argument("--rpc", default=os.environ.get("CTF_RPC", DEFAULT_RPC))
+    ap.add_argument("--keep", action="store_true", help="Arbeitsverzeichnisse behalten")
+    ap.add_argument("--no-install", action="store_true", help="pyarrow nicht nachinstallieren")
+    ap.add_argument("--quiet", action="store_true")
+    args = ap.parse_args(argv)
+
+    def log(msg):
+        if not args.quiet:
+            print(msg, flush=True)
+
+    allowed = ("cryo", "diffusc", "daedaluzz", "push")
+    wanted = [t.lower() for t in args.tools] or list(allowed)
+    unknown = [t for t in wanted if t not in allowed]
+    if unknown:
+        print("unbekannt: %s (erlaubt: %s)" % (", ".join(unknown), ", ".join(allowed)))
+        return 2
+
+    os.makedirs(LOGS, exist_ok=True)
+    wd = tempfile.mkdtemp(prefix="ctf-smoke-")
+    run_at = time.strftime("%Y-%m-%d %H:%M")
+    log("Arbeitsverzeichnis: %s" % wd)
+    results = []
+    try:
+        for tool in wanted:
+            log("[%s] laeuft …" % tool)
+            if tool == "cryo":
+                r = check_cryo(wd, args.rpc, not args.no_install, log)
+            elif tool == "diffusc":
+                r = check_diffusc(wd, log)
+            elif tool == "push":
+                r = check_push(wd, log)
+            else:
+                r = check_daedaluzz(wd, log)
+            results.append(r)
+            log("[%s] %s (%.1f s) — %s" % (tool, r["status"], r["seconds"], r["evidence"]))
+    finally:
+        if args.keep:
+            print("behalten: %s" % wd)
+        else:
+            shutil.rmtree(wd, ignore_errors=True)
+
+    block = render_block(results, run_at)
+    status_path = write_status(block)
+    payload = {"run_at": run_at, "rpc": args.rpc, "results": results,
+               "ok": len([r for r in results if r["status"] == "OK"]),
+               "fail": len([r for r in results if r["status"] == "FAIL"]),
+               "skip": len([r for r in results if r["status"] == "SKIP"])}
+    with open(SMOKE_JSON, "w") as fh:
+        json.dump(payload, fh, indent=1, ensure_ascii=False)
+
+    print("\n%-12s %-6s %6s  %s" % ("Werkzeug", "Status", "Dauer", "Beweis"))
+    for r in results:
+        print("%-12s %-6s %5.1fs  %s" % (r["tool"], r["status"], r["seconds"], r["evidence"]))
+    print("\nSTATUS.md aktualisiert: %s" % status_path)
+    print("Maschinenlesbar: %s" % SMOKE_JSON)
+    fails = [r["tool"] for r in results if r["status"] == "FAIL"]
+    return 1 if fails else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

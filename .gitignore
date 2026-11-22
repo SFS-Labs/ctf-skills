@@ -22,3 +22,25 @@ _site/
 # OS
 .DS_Store
 Thumbs.db
+
+# Factory-generated and machine-local assets (never committed)
+vendor/
+venvs/
+tools/
+logs/
+out/
+cache/
+crytic-export/
+broadcast/
+*.json.bak
+.env
+.env.*
+*.token
+*.secret
+gh-token
+.netrc
+.git-credentials
+token.txt
+.skills
+slither_results.json
+*.sarif

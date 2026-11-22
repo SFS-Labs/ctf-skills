@@ -1,0 +1,266 @@
+#!/usr/bin/env python3
+"""gen_skills — erzeugt aus repos.tsv + vendor/ die Skill-Karten, MANIFEST.yaml und INDEX.md."""
+import json
+import os
+import re
+import time
+
+HOME = os.path.expanduser("~")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+VENDOR = os.path.join(ROOT, "vendor")
+KN = os.path.join(ROOT, "knowledge")
+
+KIND = {"PY": "tool", "RS": "tool", "GO": "tool", "JS": "tool", "DK": "docker",
+        "DOC": "knowledge", "DATA": "corpus", "SRC": "source", "ARCH": "knowledge"}
+INSTALL = {"PY": "uv tool", "RS": "release-binary", "GO": "release-binary", "JS": "npm -g",
+           "DK": "docker (auf dieser Maschine nicht verfuegbar)", "DOC": "keine Installation",
+           "DATA": "keine Installation", "SRC": "keine Installation (Quell-Referenz)",
+           "ARCH": "keine Installation (archiviert, Wissen only)"}
+CLASS_BLIND = {
+    "PY": "Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.",
+    "RS": "schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.",
+    "GO": "wie RS: Qualitaet der Properties entscheidet, nicht die Worker-Zahl.",
+    "JS": "JS-Werkzeuge sehen nur, was sie parsen; Build-/Deploy-Kontext fehlt oft.",
+    "DK": "braucht Docker; auf dieser Maschine nicht lauffaehig -> nur Referenz.",
+    "DOC": "kein ausfuehrbares Artefakt; Wissen muss aktiv auf das Ziel abgebildet werden.",
+    "DATA": "Datenmenge ohne Semantik: Muster erkennen, nicht blind uebernehmen.",
+    "SRC": "kein fertiges Werkzeug; Referenz zum Nachschlagen von Semantik.",
+    "ARCH": "Original ist archiviert/ueberholt: Regeln und Ideen nutzen, nicht betreiben.",
+}
+LAYER_WHEN = {
+    "L0": "immer zuerst: Scope, Rechte, Meldeweg klaeren",
+    "L1": "sobald Quellcode/Bytecode vorliegt: Karte bauen, Compiler pinnen",
+    "L2": "Breite zuerst: alle In-Scope-Artefakte statisch abklopfen",
+    "L3": "wenn eine Annahme pruefbar wird: Invariante formulieren und brechen lassen",
+    "L4": "wenn ein statischer Treffer einen konkreten Pfad braucht",
+    "L5": "wenn kein Quellcode existiert (Bytecode-only, Proxy, fremdes Deployment)",
+    "L6": "wenn sich Code/Parameter geaendert haben (Upgrade, Deployment, Fork)",
+    "L7": "wenn Geld, Reihenfolge, Inclusion oder Vertrauen im Spiel ist",
+    "L8": "durchgehend: Musterabgleich gegen bekannte Bug-Klassen und Audit-Erfahrung",
+    "L9": "sobald ein Fund existiert: beweisen, melden, eskalieren",
+}
+LAYER_BLIND = {
+    "L0": "sagt nichts ueber Code.", "L1": "kennt die Absicht des Autors nicht.",
+    "L2": "sieht zeitliche, oekonomische und Cross-Contract-Fehler nicht.",
+    "L3": "findet nur, wofuer jemand eine Invariante formuliert hat.",
+    "L4": "Pfad-Explosion, Loops und Hash-/Krypto-Logik brechen es.",
+    "L5": "Off-Chain-Verhalten und Deployment-Kontext fehlen.",
+    "L6": "findet keine Altlasten, die schon immer da waren.",
+    "L7": "sagt nichts ueber Code-Korrektheit.", "L8": "Aktualitaet und projektspezifische Besonderheit.",
+    "L9": "ist kein Analysewerkzeug.",
+}
+PAIRS = {
+    "L0": ["safe-harbor", "seal-frameworks", "drill-template"],
+    "L1": ["crytic-compile", "solc-select", "surya", "solar"],
+    "L2": ["slither", "surya", "bytecode-verifier", "slither-mcp"],
+    "L3": ["echidna", "medusa", "properties", "scribble", "diligence-fuzzing"],
+    "L4": ["mythril", "manticore"],
+    "L5": ["evm-cfg-builder", "pyevmasm", "etheno", "abi-guesser", "canonical-signatures"],
+    "L6": ["diffusc", "oz-upgrades", "chainsecurity-deployment-validation", "bytecode-verifier"],
+    "L7": ["cryo", "mev-inspect-py", "transaction-decoder", "rbuilder"],
+    "L8": ["not-so-smart-contracts", "smart-contract-best-practices", "slowmist-knowledge-base", "ethernaut"],
+    "L9": ["seal-911", "seal-frameworks", "blockchain-security-contacts"],
+}
+NEXT = {"L0": "L1", "L1": "L2", "L2": "L3", "L3": "L4", "L4": "L5", "L5": "L6", "L6": "L7", "L7": "L8", "L8": "L9", "L9": "L2"}
+LOCAL_STATE = {
+    "cryo": "**Laeuft** (Selbstbau, kein Release-Asset vorhanden). Rezept: `recipes/cryo-build.sh`. "
+            "Binary: `tools/cryo/bin/cryo`. Aufruf: `cryo help` bzw. `cryo blocks --blocks 19000000:19000000 -r <rpc>`.",
+    "diffusc": "**Laeuft** (kein git noetig). Rezept: `recipes/diffusc-setup.sh` (Slither-Fork als Tarball + 2 Patches: "
+               "pkg_resources.require, solc_select-User-Agent). Binary: `~/.local/bin/diffusc`. "
+               "Aufruf: `diffusc VaultV1.sol VaultV2.sol -d out/` — Dateiname bestimmt den Contract-Namen (VaultV1 -> Vault), "
+               "`forge` muss im PATH sein.",
+    "daedaluzz": "**Laeuft** (Go, nicht Python). Rezept: `recipes/daedaluzz-build.sh` (Go 1.23.4 nach `~/.local/opt`). "
+                 "Binary: `~/.local/bin/daedaluzz`. Aufruf: `daedaluzz` im Zielverzeichnis -> schreibt `generated-maze.sol`.",
+}
+SIBLINGS = {
+    "evmyullean-nethermind": "solidity-lean/evmyullean (gleicher Codebestand, Fork/Umzug) — als Divergenz-Vergleich nutzen, nicht als eigener Skill",
+    "evmyullean": "solidity-lean (gleiche Semantik-Basis, Yul-Teil)",
+}
+STOP = set("the and for with your from that this use how what are you can not docs github com http https www readme".split())
+
+
+def headings(path):
+    out = []
+    try:
+        with open(path, errors="ignore") as fh:
+            for i, line in enumerate(fh):
+                if i > 400:
+                    break
+                m = re.match(r"^(#{1,3})\s+(.{2,90})$", line.rstrip())
+                if m:
+                    t = re.sub(r"[`*_\[\]()#>|]", "", m.group(2)).strip()
+                    if t and t.lower() not in ("readme", "table of contents", "contents"):
+                        out.append(t)
+    except OSError:
+        pass
+    seen, res = set(), []
+    for h in out:
+        k = h.lower()
+        if k not in seen:
+            seen.add(k)
+            res.append(h)
+    return res[:16]
+
+
+def triggers(slug, heads, cls, layer):
+    words = []
+    for h in heads:
+        for w in re.split(r"[^\w\-\+\.]+", h.lower()):
+            w = w.strip("-.")
+            if len(w) > 3 and w not in STOP and not w.isdigit() and w not in words:
+                words.append(w)
+    for w in re.split(r"[-_]", slug):
+        if len(w) > 3 and w not in words:
+            words.append(w)
+    words.append(layer)
+    return words[:26]
+
+
+def yaml_list(items, indent):
+    pad = " " * indent
+    return "".join(f"{pad}- {json.dumps(i)}\n" for i in items)
+
+
+def main():
+    rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(ROOT, "repos.tsv"))
+            if l.strip() and not l.startswith("#")]
+    entries, cards = [], 0
+    for r in rows:
+        slug, repo, cls, layer, role = r[0], r[1], r[2], r[3], r[4]
+        org, name = repo.split("/", 1)
+        vdir = os.path.join(VENDOR, org, name)
+        meta = {}
+        mf = os.path.join(vdir, ".fetched")
+        if os.path.exists(mf):
+            try:
+                meta = json.load(open(mf))
+            except json.JSONDecodeError:
+                meta = {}
+        installed = bool(meta)
+        heads = headings(os.path.join(vdir, "README.md"))
+        trig = triggers(slug, heads, cls, layer)
+        pairs = [p for p in PAIRS.get(layer, []) + PAIRS.get(NEXT.get(layer, ""), []) if p != slug][:8]
+        kind = "knowledge-archived" if cls == "ARCH" else KIND[cls]
+        entry = {
+            "slug": slug, "org": org, "repo": name, "class": cls, "kind": kind,
+            "layer": layer, "role": role, "install": INSTALL[cls],
+            "vendor": f"vendor/{org}/{name}", "fetched": installed,
+            "branch": meta.get("branch"), "archived": meta.get("archived"),
+            "license": meta.get("license"), "pushed_at": meta.get("pushed_at"),
+            "bytes": meta.get("tarball_bytes"),
+            "triggers": trig, "pairs_with": pairs,
+            "blind_spots": [CLASS_BLIND[cls], LAYER_BLIND[layer]],
+        }
+        entries.append(entry)
+        # --- Skill-Karte ---
+        d = os.path.join(KN, slug)
+        os.makedirs(d, exist_ok=True)
+        cmds = {
+            "PY": f"`{slug}` (via `uv tool`); Hilfe: `{slug} --help`",
+            "RS": f"`{slug} --help` (Release-Binary in ~/.local/bin, falls vorhanden)",
+            "GO": f"`{slug} --help` (Release-Binary, falls vorhanden)",
+            "JS": f"`{slug} --help` (npm global)",
+            "DK": "Docker erforderlich — Rezept liegt in `recipes/%s.sh`, hier nicht lauffähig" % slug,
+            "DOC": "kein Kommando — Karte lesen, Regel auf das Ziel abbilden",
+            "DATA": "kein Kommando — Daten indexieren, Muster abfragen",
+            "SRC": "kein Kommando — Quelle bei Semantikfragen nachschlagen",
+            "ARCH": "kein Kommando — Regeln/Ideen entnehmen, Tool nicht betreiben",
+        }
+        interpretation = {
+            "PY": "Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestätigt wird über L3 (Counterexample) oder L4 (Pfad).",
+            "RS": "Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte Invariante.",
+            "GO": "Assertion-Verletzung mit Call-Sequenz; Coverage sagt, was überhaupt erreichbar war.",
+            "JS": "Graph/Report als Landkarte; Aussagen über Laufzeitverhalten sind daraus nicht ableitbar.",
+            "DK": "—",
+            "DOC": "Text ist Muster, keine Messung: auf das Ziel abbilden und gegen Code prüfen.",
+            "DATA": "Treffer sind Ähnlichkeit, kein Beweis.",
+            "SRC": "Semantik-Nachschlagewerk: ‚was tut die EVM hier wirklich'.",
+            "ARCH": "Historische Regeln; Detektoren können veraltet sein.",
+        }
+        body = f"""---
+name: {slug}
+kind: {kind}
+class: {cls}
+layer: {layer}
+repo: {repo}
+install: {json.dumps(INSTALL[cls])}
+triggers: [{", ".join(trig[:12])}]
+pairs_with: [{", ".join(pairs)}]
+---
+
+# {slug} — {role}
+
+**Repo:** `{repo}` · **Layer:** {layer} · **Klasse:** {cls} · **Bezogen:** {"ja" if installed else "nein"}{f" (branch `{meta.get('branch')}`, Lizenz {meta.get('license')})" if installed else ""}
+
+## Zweck
+{role}.
+
+## Wann anwenden
+{LAYER_WHEN[layer]}.
+
+## Kommando
+{cmds[cls]}
+
+## Deutung der Ausgabe
+{interpretation[cls]}
+
+## Blinde Flecken
+- {CLASS_BLIND[cls]}
+- {LAYER_BLIND[layer]}
+
+## Kombination
+Zusammen mit: {", ".join("`"+p+"`" for p in pairs) if pairs else "—"}.
+Nach diesem Skill weiter mit Layer {NEXT[layer]}.
+{("\n## Lokaler Zustand\n" + LOCAL_STATE[slug] + "\n") if slug in LOCAL_STATE else ""}
+{("\n## Sibling\n" + SIBLINGS[slug] + "\n") if slug in SIBLINGS else ""}"""
+        open(os.path.join(d, "SKILL.md"), "w").write(body)
+        cards += 1
+
+    # --- MANIFEST.yaml ---
+    lines = [f"# generiert von bin/gen_skills — {time.strftime('%Y-%m-%dT%H:%M:%S')}",
+             f"home: {json.dumps(ROOT)}", f"count: {len(entries)}", "skills:"]
+    for e in entries:
+        lines.append(f"  - slug: {json.dumps(e['slug'])}")
+        for k in ("org", "repo", "class", "kind", "layer", "install", "vendor"):
+            lines.append(f"    {k}: {json.dumps(e[k])}")
+        lines.append(f"    fetched: {'true' if e['fetched'] else 'false'}")
+        for k in ("branch", "license", "pushed_at"):
+            lines.append(f"    {k}: {json.dumps(e[k])}")
+        lines.append(f"    archived: {'true' if e['archived'] else ('false' if e['archived'] is False else 'null')}")
+        lines.append(f"    bytes: {e['bytes'] or 0}")
+        lines.append(f"    role: {json.dumps(e['role'])}")
+        lines.append("    triggers:")
+        lines.extend(yaml_list(e["triggers"][:12], 6).rstrip("\n").split("\n"))
+        lines.append("    pairs_with:")
+        lines.extend(yaml_list(e["pairs_with"], 6).rstrip("\n").split("\n"))
+        lines.append("    blind_spots:")
+        lines.extend(yaml_list(e["blind_spots"], 6).rstrip("\n").split("\n"))
+    open(os.path.join(ROOT, "MANIFEST.yaml"), "w").write("\n".join(lines) + "\n")
+    json.dump({"generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "home": ROOT,
+               "count": len(entries), "skills": entries},
+              open(os.path.join(ROOT, "manifest.json"), "w"), indent=1, ensure_ascii=False)
+
+    # --- INDEX.md ---
+    by_layer = {}
+    for e in entries:
+        by_layer.setdefault(e["layer"], []).append(e)
+    out = ["# Skill-Index", "",
+           f"{len(entries)} Skills · generiert {time.strftime('%Y-%m-%d %H:%M')} · Home `{ROOT}`", "",
+           "Abruf: `skill list` · `skill show <slug>` · `skill find <wort>` · `skill plan <ziel>`", ""]
+    for layer in sorted(by_layer):
+        out.append(f"## {layer} — {LAYER_WHEN[layer]}")
+        out.append("")
+        out.append("| Slug | Kind | Rolle | Bezogen |")
+        out.append("|---|---|---|---|")
+        for e in sorted(by_layer[layer], key=lambda x: x["slug"]):
+            out.append(f"| `{e['slug']}` | {e['kind']} | {e['role']} | {'ja' if e['fetched'] else '**nein**'} |")
+        out.append("")
+    open(os.path.join(ROOT, "INDEX.md"), "w").write("\n".join(out) + "\n")
+    missing = [e["slug"] for e in entries if not e["fetched"]]
+    print(f"cards={cards} manifest={len(entries)} missing={len(missing)}")
+    if missing:
+        print("MISSING: " + ", ".join(missing))
+
+
+if __name__ == "__main__":
+    main()

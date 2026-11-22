@@ -1,0 +1,134 @@
+sfs-ctf-skills	SFS-Labs/ctf-skills	DOC	L8	CTF-Vorgehens-Skills, Format-Vorbild fuer Skill-Karten
+sfs-dvca	SFS-Labs/DamnVulnerableCryptoApp	JS	L3	Web3-Angriffsuebungen: Wallet/Key-Handling, Client-Flows
+sfs-awesome-crypto-security	SFS-Labs/awesome-cryptocurrency-security	DOC	L8	Landkarte Krypto-Security
+exploitdb	offensive-security/exploitdb	DATA	L8	Exploit-Korpus; Index zuerst, Volltext on demand
+reverse-skill	zhaoxuya520/reverse-skill	DOC	L5	Reverse-Engineering-Methodik (CN)
+slither	crytic/slither	PY	L2	Statik-Rueckgrat: Detektoren, Printer, SlithIR, Dataflow
+echidna	crytic/echidna	RS	L3	Property-Fuzzer; Counterexample = Beweis
+medusa	crytic/medusa	GO	L3	Coverage-Fuzzer, Go-Assertions, schnelle Breite
+building-secure-contracts	crytic/building-secure-contracts	DOC	L8	Programmatik: Properties formulieren, Assurance-Reife
+not-so-smart-contracts	crytic/not-so-smart-contracts	DOC	L8	Bug-Klassen-Katalog mit Minimalbeispielen
+awesome-ethereum-security	crytic/awesome-ethereum-security	DOC	L8	Oekosystem-Landkarte
+blockchain-security-contacts	crytic/blockchain-security-contacts	DATA	L9	Incident-Eskalation
+properties	crytic/properties	DATA	L3	Fertige ERC20/ERC4626-Invarianten fuer Echidna
+optik	crytic/optik	RS	L2	EVM-Optimizer-/Instrumentierungs-Analyse
+fuzz-utils	crytic/fuzz-utils	PY	L3	Fuzz-Harness-Hilfen
+attacknet	crytic/attacknet	DK	L3	Chaos-Testing auf Kubernetes (Docker)
+diffusc	crytic/diffusc	RS	L6	Diff-Fuzzing alter vs. neuer Stand
+caracal	crytic/caracal	ARCH	L2	Cairo/StarkNet-Statik (Wissen)
+amarna	crytic/amarna	ARCH	L2	Move-Statik (Wissen)
+tayt	crytic/tayt	ARCH	L2	StarkNet-Analyse (Wissen)
+tealer	crytic/tealer	ARCH	L2	Algorand TEAL-Analyse
+solana-lints	crytic/solana-lints	ARCH	L2	Solana/Anchor-Lint-Regelkatalog
+rattle	crytic/rattle	ARCH	L5	EVM-Bytecode-SSA-Recovery
+etheno	crytic/etheno	PY	L5	Bytecode zu lesbarer Struktur
+ethersplay	crytic/ethersplay	ARCH	L5	IDA-EVM-Plugin (interaktiv)
+evm-opcodes	crytic/evm-opcodes	DOC	L5	Opcode-Referenz inkl. Gas
+pyevmasm	crytic/pyevmasm	PY	L5	Assembler/Disassembler-Bausteine
+ida-evm	crytic/ida-evm	ARCH	L5	IDA-EVM-Prozessor
+evm-cfg-builder	crytic/evm_cfg_builder	PY	L5	CFG-Recovery aus Bytecode
+crytic-compile	crytic/crytic-compile	PY	L1	Klebstoff: ein Interface fuer alle Toolchains
+solc-select	crytic/solc-select	PY	L1	Compiler-Pinning, Reproduzierbarkeit
+cloudexec	crytic/cloudexec	DK	L3	Verteilte Fuzz-Kampagnen (Docker)
+fluxture	crytic/fluxture	RS	L3	Contract-Fuzzing/Deployment-Infrastruktur
+slither-action	crytic/slither-action	DATA	L2	CI-Gate-Rezept
+echidna-action	crytic/echidna-action	DATA	L3	CI-Fuzz-Rezept
+slither-docs-action	crytic/slither-docs-action	DATA	L2	Doku-Generierung
+manticore	trailofbits/manticore	PY	L4	Symbolische Ausfuehrung
+eth-security-toolbox	trailofbits/eth-security-toolbox	DK	L2	Ein-Container-Werkbank (Docker-Fallback)
+slither-mcp	trailofbits/slither-mcp	PY	L2	Slither als MCP-Server
+manticore-ui	trailofbits/ManticoreUI	ARCH	L4	GUI zu Manticore
+zkdocs	trailofbits/zkdocs	DOC	L8	ZK-Dokumentations-/Trust-Modelle
+tob-publications	trailofbits/publications	DOC	L8	Audit-Erfahrung als Musterbibliothek
+mythril	ConsenSysDiligence/mythril	PY	L4	Symbolische Ausfuehrung, konkrete Pfade
+scribble	ConsenSysDiligence/scribble	PY	L3	Spezifikation zu Runtime-Instrumentierung
+diligence-fuzzing	ConsenSysDiligence/diligence-fuzzing	RS	L3	Fuzz-Harness-Generator
+diligence-fuzzing-action	ConsenSysDiligence/diligence-fuzzing-github-action	DATA	L3	CI-Rezept
+daedaluzz	ConsenSysDiligence/daedaluzz	PY	L3	Coverage-gefuehrter Fuzzer
+napalm	ConsenSysDiligence/napalm	JS	L3	JS-Fuzzing (Off-Chain)
+surya	ConsenSysDiligence/surya	JS	L1	Call-Graph, Inheritance, Contract-Doku
+vscode-solidity-auditor	ConsenSysDiligence/vscode-solidity-auditor	JS	L2	Interaktive Audit-Ansicht
+smart-contract-best-practices	ConsenSysDiligence/smart-contract-best-practices	DOC	L8	Kanon der Praktiken
+evm-analyzer-benchmark-suite	ConsenSysDiligence/evm-analyzer-benchmark-suite	DATA	L8	Ground Truth: welches Tool findet was
+legions	ConsenSysDiligence/Legions	PY	L2	Aeltere Schwachstellen-Suite
+mythx-cli	ConsenSysDiligence/mythx-cli	ARCH	L4	Abgeloest (API tot)
+bytecode-verifier	ConsenSysDiligence/bytecode-verifier	RS	L6	Bytecode-/Upgrade-Verifikation
+blockchain-security-db	ConsenSysDiligence/blockchainSecurityDB	DATA	L8	Vorfall-Datenbank
+oz-contracts	OpenZeppelin/openzeppelin-contracts	SRC	L6	Referenz-Standard; Diff-Basis
+oz-contracts-upgradeable	OpenZeppelin/openzeppelin-contracts-upgradeable	SRC	L6	Upgrade-sichere Varianten
+oz-monitor	OpenZeppelin/openzeppelin-monitor	JS	L7	On-Chain-Monitoring/Alerting
+ethernaut	OpenZeppelin/ethernaut	JS	L8	CTF-Korpus kanonischer Bug-Klassen
+damn-vulnerable-defi	OpenZeppelin/damn-vulnerable-defi	JS	L8	DeFi-Angriffs-Korpus
+oz-upgrades	OpenZeppelin/openzeppelin-upgrades	JS	L6	Storage-Layout-Diff bei Upgrades
+oz-foundry-upgrades	OpenZeppelin/openzeppelin-foundry-upgrades	JS	L6	Storage-Layout-Diff fuer Foundry
+secure-development-cookbook	OpenZeppelin/secure-development-cookbook	DOC	L8	Prozess-/Checklisten-Ebene
+oz-skills	OpenZeppelin/openzeppelin-skills	DOC	L8	Skill-Format-Vorbild
+soroban-detectors	OpenZeppelin/soroban-security-detectors-sdk	RS	L2	Stellar/Soroban-Detektoren
+defender-sdk	OpenZeppelin/defender-sdk	JS	L9	Automatisierung/Response
+cairo-contracts	OpenZeppelin/cairo-contracts	SRC	L6	Cairo-Referenz
+move-over-ctf	OpenZeppelin/move_over_ctf	SRC	L8	Move-CTF-Korpus
+evmbench	paradigmxyz/evmbench	PY	L8	Benchmark mit Ground Truth
+solidity-lean	paradigmxyz/solidity-lean	SRC	L1	Formale Solidity-Semantik (Lean 4)
+solidus	paradigmxyz/solidus	ARCH	L7	Fruehe RPC/EVM-Arbeit
+evmyullean	paradigmxyz/evmyullean	SRC	L1	Yul/EVM-Semantik in Lean
+evmyullean-nethermind	NethermindEth/EVMYulLean	SRC	L1	Fork von solidity-lean (Divergenz-Vergleich)
+paradigm-ctf-2021	paradigmxyz/paradigm-ctf-2021	DATA	L8	CTF-Korpus (Foundry)
+paradigm-ctf-2022	paradigmxyz/paradigm-ctf-2022	DATA	L8	CTF-Korpus (Foundry)
+paradigm-ctf-2023	paradigmxyz/paradigm-ctf-2023	DATA	L8	CTF-Korpus (Foundry)
+paradigm-ctf-infra	paradigmxyz/paradigm-ctf-infrastructure	DK	L8	Challenge-Deployment-Vorlage (Docker)
+artemis	paradigmxyz/artemis	ARCH	L7	MEV-Bot-Framework (Rust, eingestellt)
+mev-share-rs	paradigmxyz/mev-share-rs	RS	L7	MEV-Share-Client
+cryo	paradigmxyz/cryo	RS	L7	On-Chain-Daten-Extraktion
+evm-tracing-ref	paradigmxyz/ultimate_evm_tracing_reference	DOC	L7	Tracing-Felder-Referenz
+zk-eth-rng	paradigmxyz/zk-eth-rng	DOC	L8	ZK-/RNG-Trust-Modelle
+iron-proxy	paradigmxyz/iron-proxy	RS	L7	Proxy-/Traffic-Ebene
+solar	paradigmxyz/solar	RS	L1	Moderner Solidity-Compiler
+reth	paradigmxyz/reth	SRC	L7	Client-Interna
+dstack	Dstack-TEE/dstack	RS	L7	TEE-Attestierung/Confidential Compute
+r55	r55-eth/r55	RS	L7	Alternative EVM-Implementierung
+openchain-tx-viewer	openchainxyz/ethereum-transaction-viewer-frontend	JS	L7	Transaktions-Viewer-UI
+openchain-monorepo	openchainxyz/openchain-monorepo	JS	L7	Rohdaten-Dekodierung
+transaction-decoder	openchainxyz/transaction-decoder	JS	L7	Transaktions-Dekodierung
+abi-guesser	openchainxyz/abi-guesser	JS	L5	ABI-Rekonstruktion ohne Quelle
+canonical-signatures	openchainxyz/canonical-signatures	JS	L5	Signatur-/Selector-Datenbank
+seal-911	security-alliance/seal-911	DOC	L9	Incident-Response-Kontakte
+seal-frameworks	security-alliance/frameworks	DOC	L9	SEAL-Frameworks (Krisenmanagement)
+safe-harbor	security-alliance/safe-harbor	DOC	L0	Rechtlicher Schutzrahmen
+drill-template	security-alliance/drill-template	DOC	L9	Notfall-Uebungsvorlage
+advisories	security-alliance/advisories	DATA	L8	Advisory-Muster
+blocklists	security-alliance/blocklists	DATA	L7	Adress-Blocklisten
+lazarus-group-data	security-alliance/lazarus-group-data	DATA	L7	APT-Muster
+seal-intel-sdk	security-alliance/seal-intel-sdk	JS	L7	Threat-Intel-Anbindung
+verifiable-phishing-reporter	security-alliance/verifiable-phishing-reporter	JS	L9	Meldeweg
+go-ethereum	ethereum/go-ethereum	SRC	L7	Referenz-Client; EVM-Semantik nachschlagen
+mev-inspect-py	flashbots/mev-inspect-py	PY	L7	MEV-/Angriffs-Muster aus Bloecken
+mev-research	flashbots/mev-research	DOC	L7	Forschungsstand MEV
+flashbots-pm	flashbots/pm	DOC	L8	Projektlandkarte
+mev-boost	flashbots/mev-boost	GO	L7	PBS-Seite
+mev-boost-relay	flashbots/mev-boost-relay	GO	L7	Relay-Seite: Vertrauensannahmen
+mev-geth	flashbots/mev-geth	ARCH	L7	Historisch
+rbuilder	flashbots/rbuilder	RS	L7	Block-Building: Ordering/Inclusion
+rollup-boost	flashbots/rollup-boost	RS	L7	Rollup/Sequencer
+suave-geth	flashbots/suave-geth	ARCH	L7	SUAVE: Confidential-Compute-Konzepte
+kava	Kava-Labs/kava	SRC	L7	Cosmos-Kette (Go)
+honeypot-data	0x4D31/honeypot-data	DATA	L7	Honeypot-/Scanner-Traffic
+code4rena-initia-move	code-423n4/2025-01-initia-move	DATA	L8	Contest-Findings mit Schweregraden
+zellic-publications	Zellic/publications	DOC	L8	Forschungsberichte
+movevm	initia-labs/movevm	SRC	L7	Move-VM-Interna
+mostly-harmless	FiloSottile/mostly-harmless	DOC	L8	Krypto-/Go-Praxiswissen
+php-src	php/php-src	SRC	L7	PHP-Interna (Web-Scope)
+openai-math	openai/math	DOC	L8	Mathe-Referenz (auffaellig, beim Klonen pruefen)
+near-intents	near/intents	SRC	L7	Intents-/Solver-Modell
+slowmist-knowledge-base	slowmist/Knowledge-Base	DOC	L8	Bug-Klassen und Faelle
+slowmist-dark-forest	slowmist/Blockchain-dark-forest-selfguard-handbook	DOC	L8	Selbstschutz/Wallet-OpSec
+slowmist-tracing	slowmist/Crypto-Asset-Tracing-Handbook	DOC	L7	Mittelabfluss-Analyse
+slowmist-solana-bp	slowmist/solana-smart-contract-security-best-practices	DOC	L8	Solana-Kanon
+slowmist-audit-guide	slowmist/Cryptocurrency-Security-Audit-Guide	DOC	L8	Audit-Prozess
+slowmist-roadmap	slowmist/SlowMist-Learning-Roadmap-for-Becoming-a-Smart-Contract-Auditor	DOC	L8	Curriculum, Vertiefungsreihenfolge
+chainsafe-audits	ChainSafe/audits	DOC	L8	Audit-Muster
+lodestar	ChainSafe/lodestar	SRC	L7	Consensus-Client (TS)
+forest	ChainSafe/forest	SRC	L7	Filecoin-Client (Rust)
+gossamer	ChainSafe/gossamer	SRC	L7	Polkadot-Client (Go)
+chainsecurity-deployment-validation	ChainSecurity/deployment_validation	PY	L6	Deploy-Parameter-Verifikation
+chainsecurity-dv-files	ChainSecurity/dv-files	DATA	L8	Damn-Vulnerable-DeFi-Challenges
+chainsecurity-audits	ChainSecurity/audits	DOC	L8	Audit-Muster
