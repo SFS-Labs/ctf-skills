@@ -4,7 +4,7 @@ Scope: only the **local, authorized** EVM challenge environment. This is a provi
 
 ## Baseline and non-destructive first check
 
-The screenshot is a snapshot from another machine. No item is considered repaired until a fresh probe on the Mac mini establishes it. Run within the **local Code/Codex session**, not in a remote GitHub Actions runner:
+The screenshot describes a previous session on the target Mac mini; this GitHub runner is not that host. No item is considered repaired until a fresh probe on the Mac mini establishes it. Run within the **local Code/Codex session**, not in a remote GitHub Actions runner:
 
 ```bash
 cd ~/ctf-skills
@@ -20,11 +20,83 @@ Keep `toolchain-preflight.json` **local**, outside Git: it includes local paths 
 ## Controlled repairs (one at a time; preserve all existing artifacts)
 
 1. **Git**: `bash scripts/security-toolchain-repair.sh git` when the preflight reports `BUNDLED_OUTSIDE_PATH`. Creates only `~/.local/bin/git` → bundled Freebuff Git; refuses to replace an existing file. This **does not guarantee** GUI Freebuff inherits `~/.local/bin` in PATH. Verify `command -v git && git --version` **inside a newly started Freebuff process**. If unavailable, Codex should inspect systemd-user/PATH propagation, use the already installed OS package `git` or a local launcher, and re-test. Never overwrite application bundles.
-2. **Docker**: after package/OS/available-memory check and review of existing `docker`, `containerd`, and `podman` services, run `bash scripts/security-toolchain-repair.sh docker` **only on the Mac**. Official Ubuntu Noble amd64 packages, conflict gate, no silent removal, no membership in root-equivalent `docker` group. Observe actual `sudo docker info`, `sudo docker compose version` and a constrained `--network none` smoke test. Docker **Engine availability does not make** `attacknet`, `eth-security-toolbox`, `cloudexec` or `paradigm-ctf-infra` executable: each needs its own reviewed, version-pinned image/source and independent smoke test. No automatic startup of heavyweight analysis containers. [Docker Engine installation](https://docs.docker.com/engine/install/ubuntu/) · [Docker privileges](https://docs.docker.com/engine/install/linux-postinstall/).
+2. **Docker (DEFERRED for RUN-A/B)**: these cases already have Foundry-native reproduction and do not require Docker. `bash scripts/security-toolchain-repair.sh docker` is now **dry-run only**. Only when a specific container recipe is indispensable, inspect packages, firewall, network and memory on the Mac; the `docker --apply` route is blocked when UFW is active and requires an independently reviewed manual install in that scenario. Do not install merely to turn a catalog status green. Official Ubuntu Noble amd64 packages, conflict gate, no silent removal, no membership in root-equivalent `docker` group. Observe actual `sudo docker info`, `sudo docker compose version` and a constrained `--network none` smoke test. Docker **Engine availability does not make** `attacknet`, `eth-security-toolbox`, `cloudexec` or `paradigm-ctf-infra` executable: each needs its own reviewed, version-pinned image/source and independent smoke test. No automatic startup of heavyweight analysis containers. [Docker Engine installation](https://docs.docker.com/engine/install/ubuntu/) · [Docker privileges](https://docs.docker.com/engine/install/linux-postinstall/).
 3. **Manticore**: project `trailofbits/manticore` is archived/maintenance-mode; first capture exact `manticore --version` error and Python dependency versions. Do not repair by modifying the system Python or trying unlimited pip upgrades. Prefer a compatible isolated venv or reviewed, digest-pinned upstream container, then test a small local EVM fixture with deterministic timeout/memory limits and verify a **real** output. If this cannot be made reproducible, mark `UNAVAILABLE` and use the existing `mythril`/Foundry/Slither routes; do not mislabel them as Manticore. [Upstream](https://github.com/trailofbits/manticore).
 4. **OpenZeppelin Foundry Upgrades**: this is **a project dependency**, not a global executable. Diagnose the exact failing `require` in the affected Foundry project; check `foundry.toml`, relevant submodules/node_modules, remappings, Node/NPM, `ffi`, `ast`, `build_info`, `extra_output=["storageLayout"]`, then install the official supported Foundry library with `forge install OpenZeppelin/openzeppelin-foundry-upgrades` or NPM alternative as appropriate. In a disposable copy of an authorized fixture, compile and run a test that invokes an upgrade safety validation, including an invalid storage layout negative control. Avoid changing challenge source or frozen evidence. [Official Foundry Upgrades docs](https://docs.openzeppelin.com/upgrades-plugins/foundry/foundry-upgrades).
-5. **IDA/ethersplay**: `ida-evm` requires an actual compatible IDA installation and its license; no free installation claim. Inspect license eligibility, version/API compatibility and test bytecode loading. If absent, use an **explicitly named non-IDA alternative** (e.g. existing `pyevmasm`, `evm-cfg-builder`, Foundry disassembly routes) with real fixture output. Distinguish `KNOWLEDGE_ONLY` from executed. [ida-evm](https://github.com/crytic/ida-evm).
+5. **IDA/ethersplay (NOT REQUIRED for RUN-A/B)**: `ida-evm` needs IDA Pro, but `ethersplay` is a **Binary Ninja** plugin, not an IDA plugin. Neither is needed for the two source-backed cases. `ida-evm` requires an actual compatible IDA installation and its license; no free installation claim. Inspect license eligibility, version/API compatibility and test bytecode loading. If absent, use an **explicitly named non-IDA alternative** (e.g. existing `pyevmasm`, `evm-cfg-builder`, Foundry disassembly routes) with real fixture output. Distinguish `KNOWLEDGE_ONLY` from executed. [ida-evm](https://github.com/crytic/ida-evm).
 6. **Freebuff V8 activation & evidence**: a skill file, `cloud_read_skill`, `route`, or the receipt from a manually issued script **does not prove** that Freebuff invoked its `skill` tool. Launch a **new Freebuff project session** whose actual root includes `.agents/skills/ctf-skill-index-v8/SKILL.md`, with matching YAML `name`; confirm `AGENTS.md` is the intended checkout. Observe a genuine tool call `skill(name="ctf-skill-index-v8")`, body, project root, and subsequent genuine `run --allow-exec` and `verify` receipts in that session. Run an unrelated prompt as a negative activation control. If Freebuff exposes no tool-call logs/hooks, mark `RUNTIME_UNVERIFIED` — a wrapper cannot manufacture a native Codebuff trace. The official CLI or SDK, **if supported and explicitly verified on the installed build**, can provide a separate executor pathway, not retroactive proof for the desktop agent. [Freebuff project](https://github.com/CodebuffAI/freebuff).
+
+## Defects corrected in this revision
+
+**1. Active Freebuff project != CTF tool checkout.** The earlier preflight checked
+only `~/ctf-skills/.agents/skills/ctf-skill-index-v8/SKILL.md`. That did not
+establish skill discoverability in the actual project
+`~/sfs-cyber-blind-eval`. The preflight now reports `v8_skill` and
+`project_v8_skill` **separately**. A separate non-overwriting installer
+makes a new-session skill file available when absent:
+
+```bash
+cd ~/ctf-skills  # or the approved PR worktree
+python3 bin/install-project-v8.py --project ~/sfs-cyber-blind-eval \
+  --skills-root ~/ctf-skills             # DRY RUN, no write
+python3 bin/install-project-v8.py --project ~/sfs-cyber-blind-eval \
+  --skills-root ~/ctf-skills --apply     # only after freeze, for a NEW session
+```
+
+This **changes future project discovery only**, never the historical blind-run.
+The native `skill(name="ctf-skill-index-v8")` tool call and negative-control
+test must still be observed separately. It does not create `AGENTS.md` or
+additional Freebuff Project Instructions; existing files are never replaced.
+
+**2. ZIP/TAR accounting is structural, not a hidden benchmark pass.**
+Inspect the *original input bundle* by archive metadata, not by extracting
+untrusted entries or opening reference-answer contents. The following command
+is fully read-only except for a separate local report:
+
+```bash
+python3 bin/audit-blind-bundle.py \
+  --archive /ACTUAL/PRIVATE/INPUT_BUNDLE.zip \
+  --extracted-dir /ACTUAL/PRIVATE/EXTRACTED_DIR \
+  --expected-entries 393 \
+  --out /ACTUAL/PRIVATE/EVIDENCE/bundle-inventory.json
+```
+
+Use the actual archive/extracted paths discovered locally. `393` is a
+**reported expectation**, not established by GitHub. `48` extracted entries
+may reflect selective extraction rather than a defect. The audit only counts
+file entries, identifies traversal/link hazards and checks whether a
+`case-b/task.json` path exists. It does not open the task JSON or tell whether
+its absence affects grading. Archive + frozen results remain untouched.
+
+**3. The earlier installer was too eager.** On the protected SFS Linux Node,
+Docker is *not* a prerequisite for either case and its daemon may interact with
+UFW/nftables. No automatic apt installation on this host just to satisfy the
+tool catalog. Manticore is upstream-archived (2026-06-24) and only deserves
+an isolated compatibility effort after a real symbolic-analysis need arises.
+
+**4. The Git step is context-sensitive.** The preflight checks the Python
+process executing it, **not Freebuff's shell environment**. A `git` symlink
+under `~/.local/bin` is merely a staged repair until a newly started
+Freebuff tool shell actually resolves and runs `git`. If Codex already has
+`git` in PATH while Freebuff does not, inspect the Freebuff process
+environment/launcher instead of claiming it is fixed.
+
+## Focused EIP-7702/4337 adjudication (RUN-A)
+
+A meaningful challenge-specific recheck is higher priority than Docker/IDA:
+confirm the account's **actual EIP-7702 delegation designator** and
+implementation code at historical block 82,730,141, chain ID, signer and nonce
+assumptions, whether the implementation could change, and the actual
+EntryPoint/validation path. Inspect `validateUserOp` signature binding
+(chain, account, entrypoint, nonce, replay window), `execute` and
+`executeBatch` caller checks and self-/EntryPoint allowances, and any
+initializer/delegatecall paths. Test an unauthorized caller, invalid signature,
+wrong chain/nonce and permitted caller as positive/negative controls, with
+real observed state delta. Do not infer safety solely from `onlyOwner`
+or source inspection; dynamic call context is material.
+
+References: [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702),
+[ERC-4337](https://eips.ethereum.org/EIPS/eip-4337).
 
 ## Run-A/B evidence boundary
 
