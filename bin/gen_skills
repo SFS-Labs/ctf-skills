@@ -12,7 +12,7 @@ from repos_tsv import RepoTableError, load, tree_digest  # noqa: E402
 from tool_matrix import LIB, PROBE, REF  # noqa: E402
 
 HOME = os.path.expanduser("~")
-ROOT = os.path.join(HOME, "ctf-skills")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 VENDOR = os.path.join(ROOT, "vendor")
 KN = os.path.join(ROOT, "knowledge")
 

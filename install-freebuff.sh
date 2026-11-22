@@ -3,7 +3,7 @@
 # Dry-Run ist Standard. Schreibt nur nach Pruefung der Quellen.
 set -euo pipefail
 PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="${SFS_CTF_SKILLS_ROOT:-$HOME/ctf-skills}"
+ROOT="${SFS_CTF_SKILLS_ROOT:-$PATCH_DIR}"
 TARGET="${FREEBUFF_SKILL_DIR:-$HOME/.agents/skills/ctf-skill-index}"
 V8_PROJECT_TARGET="$ROOT/.agents/skills/ctf-skill-index-v8"
 V8_SKILL_SOURCE="$PATCH_DIR/.agents/skills/ctf-skill-index-v8/SKILL.md"

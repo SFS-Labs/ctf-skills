@@ -24,7 +24,7 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from repos_tsv import RepoTableError, load, tree_digest
 
-ROOT = os.path.join(os.path.expanduser("~"), "ctf-skills")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TSV = os.path.join(ROOT, "repos.tsv")
 UA = "ctf-skills-alias-check"
 

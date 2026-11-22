@@ -11,7 +11,7 @@ Warum dieses Skript existiert:
   Deshalb hier: ein Wort tippen, Token an der unsichtbaren Eingabe einfuegen,
   Enter. Danach wird die Datei mit Modus 0600 geschrieben und — sofern nicht
   abgeschaltet — per GitHub-API geprueft, ob der Token gueltig ist und ob
-  SFS-Labs/ctf-skill-factory erreichbar ist.
+  SFS-Labs/ctf-skills erreichbar ist.
 
 Regeln (bewusst so):
   * Kein Token in argv: es gibt kein --token. Eingabe nur interaktiv oder stdin.
@@ -51,7 +51,7 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TARGET = os.path.expanduser("~/.config/gh-token")
-REPO = "SFS-Labs/ctf-skill-factory"
+REPO = "SFS-Labs/ctf-skills"
 API = "https://api.github.com"
 
 # Exakte Laengen der aktuell von GitHub ausgegebenen Token.

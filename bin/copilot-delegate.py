@@ -47,7 +47,7 @@ API_VERSION = "2026-03-10"
 GRAPHQL_FEATURES = "issues_copilot_assignment_api_support, coding_agent_model_selection"
 BOT_LOGIN = "copilot-swe-agent"
 BOT_FULL = "copilot-swe-agent[bot]"
-DEFAULT_REPO = "SFS-Labs/ctf-skill-factory"
+DEFAULT_REPO = "SFS-Labs/ctf-skills"
 STANDARD_REPO = "SFS-Labs/sfs-ai-development-gateway"
 STANDARD_PATHS = (
     "docs/COPILOT_PROFICIENCY_OPERATING_STANDARD.md",

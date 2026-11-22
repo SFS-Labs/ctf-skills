@@ -29,7 +29,7 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from repos_tsv import RepoTableError, load, tree_digest  # noqa: E402
 
-ROOT = os.path.join(os.path.expanduser("~"), "ctf-skills")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 MANIFEST = os.path.join(ROOT, "manifest.json")
 STATUS = os.path.join(ROOT, "STATUS.md")
 INDEX = os.path.join(ROOT, "INDEX.md")
@@ -258,9 +258,9 @@ def main():
              "Die Spalte `install` im Manifest ist die urspruengliche Plan-Annahme; die Spalte "
              "`status` (binary/bibliothek/referenz/wissen/korpus/quelle) stammt aus "
              "`bin/tool_matrix.py`. Maszgeblich ist die Messung unten.",
-             "Sicherung: privates Repo `SFS-Labs/ctf-skill-factory`, letzter erfolgreicher "
-             "Push `fcf11d7` (2026-11-21 05:42); `bin/push --check` ist erst mit gueltigem "
-             "Token wieder aussagekraeftig.",
+             "Kanonisches Repository: `SFS-Labs/ctf-skills` (oeffentlich). Der vorherige "
+             "Push `fcf11d7` (2026-11-21 05:42) gehoert zum archivierten Quellrepository; "
+             "sein Zustand ist kein aktueller Sicherungsnachweis.",
              "`vendor/`, `venvs/`, `tools/`, `logs/` liegen bewusst **nicht** im Repo.",
              "", "## Rechnung: 133 Plansoll, 134 Quellen, %d Skills" % len(skills), "",
              "| Groesse | gemessen |", "|---|---|",
@@ -311,7 +311,7 @@ def main():
                  "installiert. Wissen bleibt nutzbar, Betrieb nicht.")
     lines.append("- **Git-Token**: %s. Oeffentliche Repos lesen anonym (HTTP 200), "
                  "private Schreibpfade brauchen einen neuen fine-grained PAT "
-                 "(Contents: Read/Write auf `SFS-Labs/ctf-skill-factory`), Ablage "
+                 "(Contents: Read/Write auf `SFS-Labs/ctf-skills`), Ablage "
                  "`~/.config/gh-token`, Eingabe per `ctf-token`." % tok)
     if missing_wrappers:
         lines.append("- **Wrapper fehlen in ~/.local/bin**: " + ", ".join(missing_wrappers))

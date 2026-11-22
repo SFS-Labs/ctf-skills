@@ -193,10 +193,10 @@ def terms(x):
 
 
 def default_root():
-    source = Path.home() / "ctf-skills"
-    if source.joinpath("manifest.json").exists():
-        return source
-    return Path(__file__).resolve().parent.parent
+    checked_out = Path(__file__).resolve().parent.parent
+    if checked_out.joinpath("manifest.json").exists():
+        return checked_out
+    return Path.home() / "ctf-skills"
 
 
 def read_manifest(root, override=None):

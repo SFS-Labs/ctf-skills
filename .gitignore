@@ -44,3 +44,8 @@ token.txt
 .skills
 slither_results.json
 *.sarif
+
+# Runtime-only delegation state and local backups
+.copilot/
+backups/
+*.backup-*

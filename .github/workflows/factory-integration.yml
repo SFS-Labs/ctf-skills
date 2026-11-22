@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration/unify-ctf-skill-factory
+      - integration/ctf-v9-freebuff-runtime
   pull_request:
     branches:
       - main
@@ -38,15 +39,16 @@ jobs:
           data = json.loads((root / "manifest.json").read_text())
           cards = data["skills"]
           slugs = [x["slug"] for x in cards]
-          assert data["count"] == len(cards) == 134, "expected 134 factory cards"
+          assert data["count"] == len(cards) == 133, "expected 133 unique factory cards"
           assert len(set(slugs)) == len(slugs), "duplicate slugs"
           missing = [s for s in slugs if not (root / "knowledge" / s / "SKILL.md").is_file()]
           assert not missing, f"missing cards: {missing}"
-          assert len(list((root / "knowledge").glob("*/SKILL.md"))) == 134
+          assert len(list((root / "knowledge").glob("*/SKILL.md"))) == 133
           assert len((root / "repos.tsv").read_text().splitlines()) == 134
-          print("PASS: 134 unique manifest entries, knowledge cards, and repo references")
+          assert sum("alias_of=" in line for line in (root / "repos.tsv").read_text().splitlines()) == 1
+          print("PASS: 133 unique knowledge cards, 134 sources, one documented alias")
           PY
-          for tool in skill fetch install_bin doctor gen_skills push smoke; do
+          for tool in skill fetch install_bin doctor gen_skills push smoke alias-check compare-v7-v8 token skill-orchestrator.py copilot-delegate.py; do
             test -x "bin/$tool" || exit 1
           done
           for script in recipes/*.sh benchmarks/*.sh; do
@@ -59,3 +61,10 @@ jobs:
           python3 bin/skill find reentrancy > /dev/null
           python3 bin/skill plan "solidity upgrade" > /dev/null
           python3 bin/push --selftest
+
+      - name: V8/V9 package contracts (no external exploit tools)
+        run: |
+          python3 bin/skill-orchestrator.py selfcheck
+          bash -n install-freebuff.sh
+          bash install-freebuff.sh
+          python3 bin/copilot-delegate.py selftest
