@@ -17,6 +17,13 @@ The public `SFS-Labs/ctf-skills` repository is the canonical destination for con
 6. Validate existing CTF tests and factory gateway unit tests, router commands, manifest consistency, smoke-test behavior and relevant workflows. Record which checks actually ran.
 7. Merge through reviewed PR after successful checks. Archive the source repository only after verifying the integrated public repository and ensuring old links remain discoverable.
 
-## Current status
+## Verified integration status
 
-All 170 factory source files excluding its original root README and .gitignore were imported into the PR branch. A Git SHA and executable-mode comparison against the source tree returned zero mismatches. The canonical README and ignore rules have been consolidated. **Merge and source archival remain pending until new CI and review pass.** The historical local STATUS/VERIFICATION outputs are not current CI evidence.
+- **Imported:** all 170 factory source files other than the factory's original root `README.md` and `.gitignore`, which were consolidated with the canonical repository equivalents.
+- **Exact source comparison:** 170/170 files present; zero executable-mode differences. Of these, 163 have byte-identical Git blob hashes and seven intentional, reviewable changes (portable paths for factory utilities, explicit public-push protection, and one workflow description).
+- **Existing CTF source:** original `ctf-*/` trees, `solve-challenge/`, upstream MIT copyright and test suite preserved.
+- **CI verified:** [PR workflow 44978080763](https://github.com/SFS-Labs/ctf-skills/actions/runs/44978080763) and [push workflow 44978077340](https://github.com/SFS-Labs/ctf-skills/actions/runs/44978077340) both succeeded. Combined pytest result: **77 passed, 1616 subtests passed**. The manifest/card/count check, executable permissions, shell syntax, offline router commands, and synthetic token-redaction selftest passed.
+- **Not executed:** large external vendor downloads, local cryptographic tool installations, native exploit scoring, and live exploit smoke tests; these depend on optional local tooling and external test inputs. Historical `STATUS.md` and `VERIFICATION.md` are inherited, not current CI results.
+- **Change record:** [PR #2](https://github.com/SFS-Labs/ctf-skills/pull/2). The original factory repository is retained as a readable historic source pending a separately verified GitHub repository archive action.
+
+GitHub connector edits and Actions results are **not** proof of GitHub Copilot product usage. Copilot proficiency evidence: **not verified**.
