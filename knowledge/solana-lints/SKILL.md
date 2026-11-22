@@ -13,6 +13,8 @@ pairs_with: [slither, surya, bytecode-verifier, slither-mcp, echidna, medusa, pr
 
 **Repo:** `crytic/solana-lints` · **Layer:** L2 · **Klasse:** ARCH · **Bezogen:** ja (branch `master`, Lizenz None)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben
+
 ## Zweck
 Solana/Anchor-Lint-Regelkatalog.
 
@@ -20,16 +22,16 @@ Solana/Anchor-Lint-Regelkatalog.
 Breite zuerst: alle In-Scope-Artefakte statisch abklopfen.
 
 ## Kommando
-kein Kommando — Regeln/Ideen entnehmen, Tool nicht betreiben
+kein Kommando — archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben; Quelle: `vendor/crytic/solana-lints`
 
 ## Deutung der Ausgabe
-Historische Regeln; Detektoren können veraltet sein.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - Original ist archiviert/ueberholt: Regeln und Ideen nutzen, nicht betreiben.
 - sieht zeitliche, oekonomische und Cross-Contract-Fehler nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `slither`, `surya`, `bytecode-verifier`, `slither-mcp`, `echidna`, `medusa`, `properties`, `scribble`.
 Nach diesem Skill weiter mit Layer L3.
 
