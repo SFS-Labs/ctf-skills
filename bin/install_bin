@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""install_bin — laedt ein Release-Asset von GitHub und legt es unter tools/ + ~/.local/bin ab.
+
+Aufruf: install_bin <org/repo> <asset-muster> [--bin=name]
+Waehlt das erste Asset, dessen Name alle Musterteile enthaelt (case-insensitive).
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+
+HOME = os.path.expanduser("~")
+ROOT = os.path.join(HOME, "ctf-skills")
+TOOLS = os.path.join(ROOT, "tools")
+BINDIR = os.path.join(HOME, ".local", "bin")
+
+
+def token():
+    try:
+        return open(os.path.join(HOME, ".config", "gh-token")).read().strip()
+    except OSError:
+        return os.environ.get("GITHUB_TOKEN", "")
+
+
+def main():
+    repo = sys.argv[1]
+    patterns = [p.lower() for p in sys.argv[2:] if not p.startswith("--")]
+    force_name = next((a.split("=")[1] for a in sys.argv[2:] if a.startswith("--bin=")), None)
+    slug = repo.split("/")[1].lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", slug).strip("-")
+    os.makedirs(TOOLS, exist_ok=True)
+    os.makedirs(BINDIR, exist_ok=True)
+    rel = json.loads(subprocess.run(
+        ["curl", "-sS", "-H", f"Authorization: Bearer {token()}",
+         f"https://api.github.com/repos/{repo}/releases/latest"],
+        capture_output=True, text=True).stdout or "{}")
+    assets = rel.get("assets") or []
+    if not assets:
+        print(f"NO-RELEASE {repo}")
+        return 0
+    pick = None
+    for a in assets:
+        n = a["name"].lower()
+        if all(p in n for p in patterns) and not n.endswith((".sigstore.json", ".sha256", ".sig", ".asc")):
+            pick = a
+            break
+    if not pick:
+        print(f"NO-ASSET {repo} (verfuegbar: {', '.join(a['name'] for a in assets[:6])})")
+        return 0
+    dest = os.path.join(TOOLS, slug)
+    shutil.rmtree(dest, ignore_errors=True)
+    os.makedirs(dest, exist_ok=True)
+    tmp = os.path.join(dest, pick["name"])
+    subprocess.run(["curl", "-sSL", "--retry", "2", "-o", tmp,
+                    "-H", f"Authorization: Bearer {token()}", pick["browser_download_url"]], check=True)
+    if tmp.endswith((".tar.gz", ".tgz")):
+        with tarfile.open(tmp) as tf:
+            tf.extractall(dest, filter="data")
+        os.remove(tmp)
+    elif tmp.endswith(".zip"):
+        subprocess.run(["unzip", "-qo", tmp, "-d", dest], check=True)
+        os.remove(tmp)
+    else:
+        target = os.path.join(dest, force_name or slug)
+        os.replace(tmp, target)
+        os.chmod(target, 0o755)
+    # Binary finden: erst --bin, dann exakte slug-Namen, dann jedes ausfuehrbare ELF
+    cand = []
+    for base, _dirs, files in os.walk(dest):
+        for f in files:
+            p = os.path.join(base, f)
+            if os.path.isfile(p) and os.access(p, os.X_OK):
+                cand.append(p)
+    def score(p):
+        n = os.path.basename(p).lower()
+        if force_name and n == force_name.lower():
+            return 0
+        if n in (slug, slug.split("-")[0]):
+            return 1
+        return 5 if "." not in n else 9
+    cand.sort(key=score)
+    if not cand:
+        print(f"NO-BINARY {repo}")
+        return 0
+    chosen = cand[0]
+    name = force_name or os.path.basename(chosen)
+    link = os.path.join(BINDIR, name)
+    if os.path.lexists(link):
+        os.remove(link)
+    os.symlink(chosen, link)
+    print(f"OK {repo} -> {link} ({rel.get('tag_name')}, {pick['name']})")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

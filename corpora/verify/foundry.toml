@@ -1,0 +1,6 @@
+[profile.default]
+src = "."
+test = "test"
+out = "out"
+libs = []
+auto_detect_solc = true

@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""skill — Router ueber alle Skill-Karten.
+
+  skill list [--layer L2] [--kind tool]
+  skill show <slug>
+  skill find <wort>
+  skill plan <ziel>        # schlaegt die Kette entlang L0..L9 vor
+"""
+import json
+import os
+import sys
+
+ROOT = os.path.join(os.path.expanduser("~"), "ctf-skills")
+MAN = os.path.join(ROOT, "manifest.json")
+NEXT = {"L0": "L1", "L1": "L2", "L2": "L3", "L3": "L4", "L4": "L5",
+        "L5": "L6", "L6": "L7", "L7": "L8", "L8": "L9", "L9": "L9"}
+# Bug-Klassen -> Skills (README-Trigger allein reichen fuer die Suche nicht)
+ALIAS = {
+    "reentrancy": ["slither", "not-so-smart-contracts", "damn-vulnerable-defi", "echidna"],
+    "reentrant": ["slither", "not-so-smart-contracts", "echidna"],
+    "oracle": ["damn-vulnerable-defi", "properties", "not-so-smart-contracts"],
+    "flashloan": ["damn-vulnerable-defi", "properties"],
+    "flash-loan": ["damn-vulnerable-defi", "properties"],
+    "overflow": ["not-so-smart-contracts", "slither"],
+    "access": ["slither", "smart-contract-best-practices", "not-so-smart-contracts"],
+    "signature": ["canonical-signatures", "abi-guesser", "not-so-smart-contracts"],
+    "proxy": ["oz-upgrades", "bytecode-verifier", "evm-cfg-builder"],
+    "storage": ["oz-upgrades", "slither"],
+    "mev": ["mev-inspect-py", "rbuilder", "mev-research", "cryo"],
+    "governance": ["safe-harbor", "seal-frameworks", "not-so-smart-contracts"],
+    "private-key": ["sfs-dvca", "mostly-harmless", "blocklists"],
+    "incident": ["seal-911", "seal-frameworks", "advisories", "drill-template"],
+    "solana": ["solana-lints", "slowmist-solana-bp", "caracal"],
+    "move": ["movevm", "move-over-ctf", "amarna"],
+    "cairo": ["cairo-contracts", "caracal", "tayt"],
+    "bytecode": ["etheno", "evm-cfg-builder", "evmasm", "rattle"],
+}
+
+
+def load():
+    try:
+        return json.load(open(MAN))["skills"]
+    except (OSError, json.JSONDecodeError):
+        sys.exit("manifest.json fehlt — erst `gen_skills` laufen lassen")
+
+
+def fmt(e, verbose=False):
+    line = f"{e['slug']:<34} {e['layer']:<3} {e['kind']:<18} {e['role'][:58]}"
+    if verbose:
+        line += (f"\n  install : {e['install']}\n  vendor  : {e['vendor']}"
+                 f"\n  triggers: {', '.join(e['triggers'][:10])}"
+                 f"\n  pairt   : {', '.join(e['pairs_with'])}\n  blind   : {' / '.join(e['blind_spots'])}")
+    return line
+
+
+def main():
+    args = [a for a in sys.argv[1:]]
+    if not args or args[0] in ("-h", "--help", "help"):
+        print(__doc__)
+        return
+    skills = load()
+    cmd = args[0]
+    if cmd == "list":
+        layer = next((a.split("=")[1] for a in args if a.startswith("--layer=")), None)
+        kind = next((a.split("=")[1] for a in args if a.startswith("--kind=")), None)
+        for e in sorted(skills, key=lambda x: (x["layer"], x["slug"])):
+            if layer and e["layer"] != layer:
+                continue
+            if kind and e["kind"] != kind:
+                continue
+            print(fmt(e))
+    elif cmd == "show":
+        if len(args) < 2:
+            sys.exit("slug fehlt")
+        hit = [e for e in skills if e["slug"] == args[1]]
+        if not hit:
+            sys.exit(f"unbekannt: {args[1]}")
+        e = hit[0]
+        print(fmt(e, verbose=True))
+        card = os.path.join(ROOT, "knowledge", e["slug"], "SKILL.md")
+        if os.path.exists(card):
+            print("\n" + open(card).read())
+    elif cmd == "find":
+        q = " ".join(args[1:]).lower()
+        if not q:
+            sys.exit("suchwort fehlt")
+        scored = []
+        for e in skills:
+            hay = " ".join([e["slug"], e["role"], " ".join(e["triggers"]), e["repo"]]).lower()
+            if q in hay:
+                scored.append((0 if q in e["slug"].lower() else 1, e))
+        for _, e in sorted(scored, key=lambda t: (t[0], t[1]["layer"])):
+            print(fmt(e))
+        by = {e["slug"]: e for e in skills}
+        already = {e["slug"] for _, e in scored}
+        extra = [by[s] for s in ALIAS.get(q, []) if s in by and s not in already]
+        for e in extra:
+            print(fmt(e))
+        if not scored and not extra:
+            print("kein Treffer — versuche `skill find <teilwort>` oder `skill list --layer=L3`")
+    elif cmd == "plan":
+        target = " ".join(args[1:])
+        text = target.lower()
+        keywords = {
+            "solidity": ["solc-select", "crytic-compile", "surya", "slither", "echidna", "properties", "mythril"],
+            "bytecode": ["etheno", "evm-cfg-builder", "pyevmasm", "canonical-signatures"],
+            "defi": ["damn-vulnerable-defi", "properties", "oz-contracts", "cryo"],
+            "upgrade": ["oz-upgrades", "diffusc", "bytecode-verifier", "chainsecurity-deployment-validation"],
+            "solana": ["solana-lints", "slowmist-solana-bp", "caracal"],
+            "move": ["movevm", "move-over-ctf", "amarna"],
+            "cairo": ["cairo-contracts", "caracal", "tayt"],
+            "mev": ["mev-inspect-py", "rbuilder", "cryo", "mev-research"],
+            "wallet": ["sfs-dvca", "exploitdb", "mostly-harmless"],
+        }
+        picks = []
+        for k, v in keywords.items():
+            if k in text:
+                picks.extend(v)
+        base = ["safe-harbor", "slither", "surya", "echidna", "medusa", "not-so-smart-contracts",
+                "smart-contract-best-practices", "seal-911"]
+        seen = []
+        for s in base + picks:
+            if s not in seen:
+                seen.append(s)
+        by = {e["slug"]: e for e in skills}
+        print(f"Ziel: {target or '(leer)'}\n")
+        chain = sorted((by[s] for s in seen if s in by), key=lambda e: (e["layer"], e["slug"]))
+        for e in chain:
+            print(f"  {e['layer']:<3} {e['slug']:<34} {e['role'][:60]}")
+        print("\nRegeln: 2 Signale pro Hypothese · Counterexample > Pfad > Detektor > Muster · Divergenz ist das Signal")
+    else:
+        sys.exit(f"unbekannt: {cmd}")
+
+
+if __name__ == "__main__":
+    main()

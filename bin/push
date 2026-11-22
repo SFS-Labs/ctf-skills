@@ -1,0 +1,382 @@
+#!/usr/bin/env python3
+"""push — Stand ins private Repo sichern, ohne dass ein Token in der Ausgabe landet.
+
+Warum dieses Skript existiert:
+  dulwich schreibt beim Push die volle Remote-URL inklusive Token nach stderr —
+  auch in Tracebacks. Ein `2>&1 | sed s/$TOKEN/…/` hilft nichts, weil der Token
+  dann in der argv von sed steht und in `ps` fuer jeden sichtbar ist.
+
+Regeln dieses Wrappers (bewusst so):
+  * Credentials ausschliesslich aus der Umgebung: GH_TOKEN, sonst GITHUB_TOKEN.
+    Es gibt kein --token/--password und keine Datei, die hier gelesen wird.
+  * Der Token wird nie in argv gelegt (waere via `ps` sichtbar) und nie geschrieben.
+  * Alles, was ausgegeben wird — auch stderr des Push-Workers — laeuft durch einen
+    Redactor: Tokenwert (roh und URL-kodiert), URL-Userinfo, Bearer-Header und
+    tokenfoermige Muster.
+  * Erfolg wird nicht behauptet, sondern per API geprueft: Remote-SHA == lokaler HEAD.
+
+Aufrufe:
+  bin/push --dry-run                      # zeigt den Plan, kein Netz, kein Push
+  bin/push --check                        # read-only: Remote-HEAD vs. lokal
+  bin/push                                # pusht HEAD, prueft danach den Remote-SHA
+  bin/push -m "Nachricht" --add bin/push --add README.md
+  bin/push --selftest                     # prueft den Redactor gegen synthetische Lecks
+
+Exit: 0 ok · 2 Aufruf/Credentials · 3 Push fehlgeschlagen · 4 Pruefung fehlgeschlagen
+"""
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+DULWICH_PY = os.path.expanduser("~/.local/share/uv/tools/dulwich/bin/python")
+DEFAULT_REPO = "SFS-Labs/ctf-skill-factory"
+DEFAULT_BRANCH = "main"
+DEFAULT_IDENT = "SFS-Labs <sfs-labs@users.noreply.github.com>"
+API = "https://api.github.com/repos/%s/git/ref/heads/%s"
+
+# Muster, die auch dann greifen, wenn ein anderer Token als der eigene auftaucht
+# (z. B. in einer Fehlermeldung von GitHub oder einem fremden Traceback).
+PATTERNS = [
+    (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "<redacted-token>"),
+    (re.compile(r"github_pat_[A-Za-z0-9_]{20,}"), "<redacted-token>"),
+    (re.compile(r"(?i)\b(x-access-token:)[^@\s\"']+"), r"\1<redacted>"),
+    (re.compile(r"(?i)\b(https?://)[^/@\s\"']+@"), r"\1<credentials>@"),
+    (re.compile(r"(?i)\b(authorization:\s*(?:bearer|basic)\s+)\S+"), r"\1<redacted>"),
+    (re.compile(r"(?i)\b(password|passwd|secret|token)=([^\s&\"']+)"), r"\1=<redacted>"),
+]
+
+
+def credentials():
+    """Token nur aus der Umgebung. Reihenfolge: GH_TOKEN, GITHUB_TOKEN."""
+    for name in ("GH_TOKEN", "GITHUB_TOKEN"):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value, name
+    return "", ""
+
+
+def secrets_for_redaction(tok):
+    out = [tok] if tok else []
+    if tok:
+        out.append(urllib.parse.quote(tok, safe=""))
+    return [s for s in out if len(s) >= 8]
+
+
+def redact(text, secrets):
+    for s in secrets:
+        text = text.replace(s, "<redacted-token>")
+    for rx, rep in PATTERNS:
+        text = rx.sub(rep, text)
+    return text
+
+
+def out(line, secrets):
+    print(redact(str(line), secrets), flush=True)
+
+
+def die(msg, code, secrets):
+    out(msg, secrets)
+    sys.exit(code)
+
+
+def api_ref(repo, branch, tok):
+    """Read-only: Remote-SHA. Der Token geht als Header raus, nie in die URL."""
+    req = urllib.request.Request(API % (repo, branch), headers={
+        "Authorization": "Bearer %s" % tok,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "ctf-skills-push",
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.load(resp)["object"]["sha"]
+
+
+def api_visibility(repo, tok):
+    req = urllib.request.Request("https://api.github.com/repos/%s" % repo, headers={
+        "Authorization": "Bearer %s" % tok,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "ctf-skills-push",
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.load(resp)
+    return data.get("private"), data.get("default_branch")
+
+
+def local_head():
+    """HEAD ohne dulwich lesen — funktioniert mit jedem python3."""
+    head_file = os.path.join(ROOT, ".git", "HEAD")
+    try:
+        head = open(head_file).read().strip()
+    except OSError:
+        return ""
+    if head.startswith("ref: "):
+        ref = head[5:].strip()
+        try:
+            direct = open(os.path.join(ROOT, ".git", ref)).read().strip()
+            if re.fullmatch(r"[0-9a-f]{40}", direct):
+                return direct
+        except OSError:
+            pass
+        try:
+            packed = open(os.path.join(ROOT, ".git", "packed-refs")).read()
+        except OSError:
+            return ""
+        for line in packed.splitlines():
+            if line.endswith(" " + ref) and not line.startswith("#"):
+                return line.split()[0].strip()
+        return ""
+    return head
+
+
+def dirty_files():
+    """Anzahl geaenderter/unversionierter Dateien — git, sonst dulwich, sonst None."""
+    try:
+        r = subprocess.run(["git", "-C", ROOT, "status", "--porcelain"],
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode == 0:
+            return len([l for l in r.stdout.splitlines() if l.strip()])
+    except OSError:
+        pass
+    if os.path.exists(DULWICH_PY):
+        code = ("import sys\n"
+                "from dulwich import porcelain\n"
+                "from dulwich.repo import Repo\n"
+                "s = porcelain.status(Repo(sys.argv[1]))\n"
+                "print(len(s.unstaged or []) + len(s.untracked or []))\n")
+        try:
+            r = subprocess.run([DULWICH_PY, "-c", code, ROOT],
+                               capture_output=True, text=True, timeout=60)
+            if r.returncode == 0:
+                return int(r.stdout.strip().splitlines()[-1])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+    return None
+
+
+def commit_message(args):
+    if args.message and args.msg_file:
+        return None, "Bitte nur -m oder -F, nicht beides."
+    if args.msg_file:
+        try:
+            return open(args.msg_file).read(), ""
+        except OSError as exc:
+            return None, "Nachrichtendatei nicht lesbar: %s" % exc
+    return (args.message or ""), ""
+
+
+def run_worker(args, secrets, msg):
+    """Startet den Push in einem Kindprozess und redigiert dessen komplette Ausgabe.
+
+    Der Token steht nur in der Umgebung des Kindes, nie in seiner argv — dadurch
+    bleibt er aus `ps` und aus jedem Logeintrag heraus.
+    """
+    if not os.path.exists(DULWICH_PY):
+        die("dulwich-Interpreter fehlt: %s (uv tool install dulwich)" % DULWICH_PY, 2, secrets)
+    msg_path = ""
+    argv = [DULWICH_PY, os.path.realpath(__file__), "--_worker",
+            "--repo", args.repo, "--branch", args.branch, "--ident", args.ident]
+    if msg:
+        fd, msg_path = tempfile.mkstemp(prefix="pushmsg-", suffix=".txt")
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write(msg)
+        argv += ["--msg-file", msg_path]
+    for path in args.add:
+        argv += ["--add", path]
+    env = os.environ.copy()
+    env.pop("GIT_ASKPASS", None)
+    env.pop("SSH_ASKPASS", None)
+    try:
+        proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, env=env, cwd=ROOT)
+        pushed = False
+        for line in proc.stdout:
+            line = line.rstrip("\n")
+            if line.startswith("PUSH_OK "):
+                pushed = True
+            out(line, secrets)
+        rc = proc.wait()
+    finally:
+        if msg_path:
+            try:
+                os.unlink(msg_path)
+            except OSError:
+                pass
+    return rc, pushed
+
+
+def worker(argv):
+    """Kindprozess: arbeitet mit dulwich, gibt nie den Token selbst aus."""
+    ap = argparse.ArgumentParser(prog="push --_worker")
+    ap.add_argument("--repo", required=True)
+    ap.add_argument("--branch", required=True)
+    ap.add_argument("--ident", default=DEFAULT_IDENT)
+    ap.add_argument("--msg-file", default="")
+    ap.add_argument("--add", action="append", default=[])
+    # Das Flag hat den Kindprozess gestartet; argparse kennt es nicht.
+    a = ap.parse_args([x for x in argv if x != "--_worker"])
+    import warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from dulwich import porcelain
+    from dulwich.repo import Repo
+
+    tok, source = credentials()
+    if not tok:
+        print("FEHLER: keine Credentials in der Umgebung (GH_TOKEN/GITHUB_TOKEN)")
+        return 2
+    print("remote: https://github.com/%s (Token aus $%s, wird nicht ausgegeben)" % (a.repo, source))
+    repo = Repo(ROOT)
+    head = repo.head().decode()
+    print("lokal : %s (%s)" % (head[:7], a.branch))
+    if a.msg_file:
+        msg = open(a.msg_file).read().encode()
+        if a.add:
+            porcelain.add(repo, paths=a.add)
+        ident = a.ident.encode()
+        head = porcelain.commit(repo, message=msg, author=ident, committer=ident).decode()
+        print("commit: %s" % head)
+    url = "https://x-access-token:%s@github.com/%s.git" % (tok, a.repo)
+    refspec = "refs/heads/%s:refs/heads/%s" % (a.branch, a.branch)
+    try:
+        result = porcelain.push(repo, url, refspecs=[refspec.encode()])
+    except Exception as exc:  # kein Traceback: dulwich-Exceptions koennen die URL tragen
+        msg = " ".join(str(exc).split()) or "keine Meldung"
+        print("FEHLER: %s: %s" % (type(exc).__name__, msg))
+        if type(exc).__name__ == "HTTPUnauthorized":
+            print("        -> Token abgelehnt oder Scope fehlt (repo). Nichts wurde geschrieben.")
+        return 3
+    refs = getattr(result, "refs", None) or result
+    shown = {k.decode() if isinstance(k, bytes) else k: (v.decode() if isinstance(v, bytes) else v)
+             for k, v in dict(refs).items()}
+    print("PUSH_OK %s %s" % (a.branch, head))
+    for ref, sha in shown.items():
+        print("  %s -> %s" % (ref, (sha or "")[:7]))
+    return 0
+
+
+def cmd_dry_run(args, secrets):
+    head = local_head()
+    dirty = dirty_files()
+    out("repo  : https://github.com/%s" % args.repo, secrets)
+    out("branch: %s" % args.branch, secrets)
+    out("lokal : %s" % (head[:7] if head else "HEAD nicht lesbar"), secrets)
+    out("offen : %s" % ("unbekannt (kein git im PATH, kein dulwich-Status)" if dirty is None
+                        else "%d geaenderte/unversionierte Dateien" % dirty), secrets)
+    msg, err = commit_message(args)
+    if err:
+        die(err, 2, secrets)
+    if msg:
+        out("commit: wuerde anlegen mit %d Zeichen Nachricht und %d Pfad(en)"
+            % (len(msg), len(args.add)), secrets)
+    out("push  : wuerde %s -> refs/heads/%s schieben (Token aus der Umgebung)" % (head[:7], args.branch), secrets)
+    out("trockenlauf: nichts committed, nichts gepusht, kein Netz.", secrets)
+    return 0
+
+
+def cmd_check(args, secrets, tok):
+    head = local_head()
+    if not head:
+        die("HEAD nicht lesbar (%s/.git/HEAD)" % ROOT, 3, secrets)
+    try:
+        remote = api_ref(args.repo, args.branch, tok)
+        private, default = api_visibility(args.repo, tok)
+    except urllib.error.HTTPError as exc:
+        die("API-Fehler %s bei %s (Token-Scope?)" % (exc.code, args.repo), 3, secrets)
+    except (urllib.error.URLError, OSError) as exc:
+        die("Netzfehler: %s" % exc, 3, secrets)
+    out("repo    : %s (private=%s, default=%s)" % (args.repo, private, default), secrets)
+    out("remote  : %s" % remote, secrets)
+    out("lokal   : %s" % head, secrets)
+    out("ergebnis: %s" % ("MATCH" if remote == head else "MISMATCH"), secrets)
+    dirty = dirty_files()
+    if dirty:
+        out("hinweis : %d geaenderte/unversionierte Dateien (Remote-Stand ist HEAD)" % dirty, secrets)
+    return 0 if remote == head else 4
+
+
+def cmd_selftest():
+    tok = "ghp_" + "Z" * 36
+    fake = secrets_for_redaction(tok)
+    leaks = [
+        "?Push to https://x-access-token:%s@github.com/o/r.git successful." % tok,
+        "fatal: unable to access 'https://user:%s@github.com/o/r.git/'" % tok,
+        "Authorization: Bearer %s" % tok,
+        "curl -H 'authorization: Bearer %s'" % tok,
+        "https://github.com/o/r?access_token=%s" % tok,
+        "token=%s&x=1" % tok,
+    ]
+    clean = "Ref refs/heads/main updated (20ce8d9)"
+    bad = 0
+    for line in leaks:
+        got = redact(line, fake)
+        ok = tok not in got and ("<redacted" in got or "<credentials>" in got)
+        bad += 0 if ok else 1
+        print("  %-4s %s" % ("ok" if ok else "LEAK", got))
+    if redact(clean, fake) != clean:
+        bad += 1
+        print("  LEAK harmlose Zeile wurde veraendert")
+    print("selftest: %s" % ("bestanden (6 synthetische Lecks redigiert)" if not bad
+                           else "%d Fehler" % bad))
+    return 0 if not bad else 3
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(prog="push", add_help=True,
+                                 description="Push-Wrapper: Credentials nur aus der Umgebung, Ausgabe redigiert.")
+    ap.add_argument("--dry-run", action="store_true", help="Plan zeigen, kein Netz, kein Push")
+    ap.add_argument("--check", action="store_true", help="nur Remote-SHA vs. lokal pruefen (read-only)")
+    ap.add_argument("--selftest", action="store_true", help="Redactor gegen synthetische Lecks pruefen")
+    ap.add_argument("-m", "--message", default="", help="Commit-Nachricht (dann wird committed)")
+    ap.add_argument("-F", "--msg-file", default="", help="Commit-Nachricht aus Datei")
+    ap.add_argument("--add", action="append", default=[], help="Pfad zum Stagen (mehrfach moeglich)")
+    ap.add_argument("--repo", default=DEFAULT_REPO)
+    ap.add_argument("--branch", default=DEFAULT_BRANCH)
+    ap.add_argument("--ident", default=DEFAULT_IDENT)
+    ap.add_argument("--_worker", action="store_true", help=argparse.SUPPRESS)
+    args = ap.parse_args(argv)
+
+    if args._worker:
+        return worker(argv)
+    if args.selftest:
+        return cmd_selftest()
+
+    tok, source = credentials()
+    secrets = secrets_for_redaction(tok)
+    if args.dry_run:
+        return cmd_dry_run(args, secrets)
+    if args.check:
+        if not tok:
+            die("keine Credentials: GH_TOKEN oder GITHUB_TOKEN setzen (nicht als Argument uebergeben)", 2, secrets)
+        return cmd_check(args, secrets, tok)
+    if not tok:
+        die("keine Credentials: GH_TOKEN oder GITHUB_TOKEN setzen.\n"
+            "  Beispiel: export GH_TOKEN=$(cat ~/.config/gh-token)   # Datei bleibt ausserhalb des Repos", 2, secrets)
+    msg, err = commit_message(args)
+    if err:
+        die(err, 2, secrets)
+    if msg and not args.add:
+        die("--add fehlt: ohne Pfadliste wuerde ein leerer Commit entstehen", 2, secrets)
+    rc, pushed = run_worker(args, secrets, msg)
+    if rc != 0 or not pushed:
+        out("ergebnis: Push fehlgeschlagen (exit %s)" % rc, secrets)
+        return 3
+    try:
+        remote = api_ref(args.repo, args.branch, tok)
+    except Exception as exc:  # Netzfehler nach erfolgreichem Push: ehrlich benennen
+        out("warnung: Push laut dulwich ok, Pruefung nicht moeglich (%s)" % type(exc).__name__, secrets)
+        return 0
+    head = local_head()
+    match = remote == head
+    out("pruefung: remote %s | lokal %s -> %s" % (remote[:7], head[:7], "MATCH" if match else "MISMATCH"), secrets)
+    return 0 if match else 4
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
