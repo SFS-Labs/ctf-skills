@@ -3,10 +3,16 @@
 import json
 import os
 import re
+import shutil
+import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from repos_tsv import RepoTableError, load, tree_digest  # noqa: E402
+from tool_matrix import LIB, PROBE, REF  # noqa: E402
+
 HOME = os.path.expanduser("~")
-ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+ROOT = os.path.join(HOME, "ctf-skills")
 VENDOR = os.path.join(ROOT, "vendor")
 KN = os.path.join(ROOT, "knowledge")
 
@@ -72,10 +78,6 @@ LOCAL_STATE = {
     "daedaluzz": "**Laeuft** (Go, nicht Python). Rezept: `recipes/daedaluzz-build.sh` (Go 1.23.4 nach `~/.local/opt`). "
                  "Binary: `~/.local/bin/daedaluzz`. Aufruf: `daedaluzz` im Zielverzeichnis -> schreibt `generated-maze.sol`.",
 }
-SIBLINGS = {
-    "evmyullean-nethermind": "solidity-lean/evmyullean (gleicher Codebestand, Fork/Umzug) — als Divergenz-Vergleich nutzen, nicht als eigener Skill",
-    "evmyullean": "solidity-lean (gleiche Semantik-Basis, Yul-Teil)",
-}
 STOP = set("the and for with your from that this use how what are you can not docs github com http https www readme".split())
 
 
@@ -121,12 +123,61 @@ def yaml_list(items, indent):
     return "".join(f"{pad}- {json.dumps(i)}\n" for i in items)
 
 
+def entry_status(slug, vendor, cls, kind):
+    """Gemessene Einordnung aus derselben Tabelle, die `bin/doctor` ausfuehrt.
+
+    REF/LIB werden woertlich uebernommen; PROBE wird nur per `which` geprueft, damit die
+    Karte keinen Start behauptet. Ein Eintrag ohne Tabellenzugehoerigkeit ist
+    `unklassifiziert` — dieselbe Luecke meldet `bin/doctor` als FAIL.
+    """
+    if cls == "ARCH":
+        return "referenz", "archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben"
+    if cls == "DK":
+        return "referenz", "braucht Docker; auf dieser Maschine nicht lauffaehig"
+    if kind == "tool":
+        if slug in REF:
+            return "referenz", REF[slug].format(p=vendor)
+        if slug in LIB:
+            return "bibliothek", "installiert; Nutzung als Modul, kein CLI"
+        if slug in PROBE:
+            binary = PROBE[slug]
+            if shutil.which(binary):
+                return "binary", "`%s` im PATH" % binary
+            return "binary-fehlt", "`%s` nicht im PATH — bin/doctor meldet das als FAIL" % binary
+        return "unklassifiziert", "kein Eintrag in PROBE/LIB/REF (bin/doctor: FAIL)"
+    return {"knowledge": ("wissen", "Text und Regeln, kein Betrieb"),
+            "corpus": ("korpus", "Daten/Korpus, kein CLI"),
+            "source": ("quelle", "Quellbaum als Semantik-Referenz"),
+            "docker": ("referenz", "braucht Docker"),
+            }.get(kind, ("unklassifiziert", ""))
+
+
 def main():
-    rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(ROOT, "repos.tsv"))
-            if l.strip() and not l.startswith("#")]
+    try:
+        rows, aliases = load(os.path.join(ROOT, "repos.tsv"))
+    except RepoTableError as exc:
+        raise SystemExit("repos.tsv: %s" % exc)
+    by_slug = {r["slug"]: r for r in rows}
+    alias_by_target = {}
+    for a in aliases:
+        alias_by_target.setdefault(a["target"], []).append(a)
+    # Der Pin muss zum aktuellen Baum passen, sonst waere die Karte eine Behauptung.
+    for target, records in alias_by_target.items():
+        tree = os.path.join(VENDOR, *by_slug[target]["repo"].split("/"))
+        try:
+            digest, files = tree_digest(tree)
+        except RepoTableError as exc:
+            raise SystemExit("Alias-Beweis fuer %s nicht pruefbar: %s" % (target, exc))
+        for a in records:
+            if (digest, files) != (a["tree_sha256"], a["files"]):
+                raise SystemExit(
+                    "Alias-Beweis veraltet: %s -> %s (Baum %s/%d, gepinnt %s/%d). "
+                    "Pruefen und neu pinnen: bin/alias-check --update"
+                    % (a["slug"], target, digest[:12], files,
+                       a["tree_sha256"][:12], a["files"]))
     entries, cards = [], 0
     for r in rows:
-        slug, repo, cls, layer, role = r[0], r[1], r[2], r[3], r[4]
+        slug, repo, cls, layer, role = r["slug"], r["repo"], r["cls"], r["layer"], r["role"]
         org, name = repo.split("/", 1)
         vdir = os.path.join(VENDOR, org, name)
         meta = {}
@@ -141,10 +192,15 @@ def main():
         trig = triggers(slug, heads, cls, layer)
         pairs = [p for p in PAIRS.get(layer, []) + PAIRS.get(NEXT.get(layer, ""), []) if p != slug][:8]
         kind = "knowledge-archived" if cls == "ARCH" else KIND[cls]
+        status, status_reason = entry_status(slug, f"vendor/{org}/{name}", cls, kind)
         entry = {
             "slug": slug, "org": org, "repo": name, "class": cls, "kind": kind,
             "layer": layer, "role": role, "install": INSTALL[cls],
+            "status": status, "status_reason": status_reason,
             "vendor": f"vendor/{org}/{name}", "fetched": installed,
+            "aliases": [{"slug": a["slug"], "repo": a["repo"],
+                         "tree_sha256": a["tree_sha256"], "files": a["files"]}
+                        for a in alias_by_target.get(slug, [])],
             "branch": meta.get("branch"), "archived": meta.get("archived"),
             "license": meta.get("license"), "pushed_at": meta.get("pushed_at"),
             "bytes": meta.get("tarball_bytes"),
@@ -177,6 +233,46 @@ def main():
             "SRC": "Semantik-Nachschlagewerk: ‚was tut die EVM hier wirklich'.",
             "ARCH": "Historische Regeln; Detektoren können veraltet sein.",
         }
+        alias_block = ""
+        if entry["aliases"]:
+            alias_block = "## Zweiter Remote\n" + "\n".join(
+                "`{repo}` ist Alias, kein zweiter Klon: derselbe Baum "
+                "(`tree_sha256` `{sha}`, {files} Dateien, gepinnt in `repos.tsv`). "
+                "Pruefen: `bin/alias-check --local` (Baum) bzw. `bin/alias-check` "
+                "(gegen den Remote).".format(repo=a["repo"], sha=a["tree_sha256"],
+                                             files=a["files"])
+                for a in entry["aliases"]) + "\n"
+        if status == "referenz":
+            banner = "> **Referenzkarte — kein Betrieb auf dieser Maschine.** %s\n\n" % status_reason
+        elif status == "bibliothek":
+            banner = "> **Bibliothek — kein eigenes CLI.** %s\n\n" % status_reason
+        elif status == "binary-fehlt":
+            banner = "> **Werkzeug fehlt.** %s\n\n" % status_reason
+        elif status == "unklassifiziert":
+            banner = "> **Unklassifiziert.** %s\n\n" % status_reason
+        else:
+            banner = ""
+        if status == "bibliothek":
+            cmd = ("kein CLI — als Modul einbinden; Import-Test (ob er gelingt, misst "
+                   "`bin/doctor`): `NODE_PATH=$(npm root -g) node -e \"require('%s')\"`"
+                   % LIB[slug][1])
+        elif status == "referenz" and cls != "DK":
+            cmd = "kein Kommando — %s%s" % (
+                status_reason,
+                "" if cls in ("DOC", "DATA") else "; Quelle: `%s`" % entry["vendor"])
+        else:
+            cmd = cmds[cls]
+        if status == "referenz" and cls == "DK":
+            why = ("keine Ausgabe — auf dieser Maschine nicht lauffaehig; Rezept in "
+                   "`recipes/%s.sh`." % slug)
+        elif status == "referenz":
+            why = ("keine Ausgabe — laeuft hier nicht; Nutzen ist %s."
+                   % ("das Wissen/der Korpus" if cls in ("DOC", "DATA")
+                      else "der Quellbaum im vendor-Baum"))
+        elif status == "bibliothek":
+            why = "keine Ausgabe — die Bibliothek wird aus eigenem Code aufgerufen."
+        else:
+            why = interpretation[cls]
         body = f"""---
 name: {slug}
 kind: {kind}
@@ -192,28 +288,28 @@ pairs_with: [{", ".join(pairs)}]
 
 **Repo:** `{repo}` · **Layer:** {layer} · **Klasse:** {cls} · **Bezogen:** {"ja" if installed else "nein"}{f" (branch `{meta.get('branch')}`, Lizenz {meta.get('license')})" if installed else ""}
 
-## Zweck
+{banner}## Zweck
 {role}.
 
 ## Wann anwenden
 {LAYER_WHEN[layer]}.
 
 ## Kommando
-{cmds[cls]}
+{cmd}
 
 ## Deutung der Ausgabe
-{interpretation[cls]}
+{why}
 
 ## Blinde Flecken
 - {CLASS_BLIND[cls]}
 - {LAYER_BLIND[layer]}
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: {", ".join("`"+p+"`" for p in pairs) if pairs else "—"}.
 Nach diesem Skill weiter mit Layer {NEXT[layer]}.
 {("\n## Lokaler Zustand\n" + LOCAL_STATE[slug] + "\n") if slug in LOCAL_STATE else ""}
-{("\n## Sibling\n" + SIBLINGS[slug] + "\n") if slug in SIBLINGS else ""}"""
-        open(os.path.join(d, "SKILL.md"), "w").write(body)
+{alias_block}"""
+        open(os.path.join(d, "SKILL.md"), "w").write(body.rstrip("\n") + "\n\n")
         cards += 1
 
     # --- MANIFEST.yaml ---
@@ -223,12 +319,21 @@ Nach diesem Skill weiter mit Layer {NEXT[layer]}.
         lines.append(f"  - slug: {json.dumps(e['slug'])}")
         for k in ("org", "repo", "class", "kind", "layer", "install", "vendor"):
             lines.append(f"    {k}: {json.dumps(e[k])}")
+        lines.append(f"    status: {json.dumps(e['status'])}")
+        lines.append(f"    status_reason: {json.dumps(e['status_reason'])}")
         lines.append(f"    fetched: {'true' if e['fetched'] else 'false'}")
         for k in ("branch", "license", "pushed_at"):
             lines.append(f"    {k}: {json.dumps(e[k])}")
         lines.append(f"    archived: {'true' if e['archived'] else ('false' if e['archived'] is False else 'null')}")
         lines.append(f"    bytes: {e['bytes'] or 0}")
         lines.append(f"    role: {json.dumps(e['role'])}")
+        if e.get("aliases"):
+            lines.append("    aliases:")
+            for a in e["aliases"]:
+                lines.append(f"      - slug: {json.dumps(a['slug'])}")
+                lines.append(f"        repo: {json.dumps(a['repo'])}")
+                lines.append(f"        tree_sha256: {json.dumps(a['tree_sha256'])}")
+                lines.append(f"        files: {a['files']}")
         lines.append("    triggers:")
         lines.extend(yaml_list(e["triggers"][:12], 6).rstrip("\n").split("\n"))
         lines.append("    pairs_with:")
@@ -250,14 +355,17 @@ Nach diesem Skill weiter mit Layer {NEXT[layer]}.
     for layer in sorted(by_layer):
         out.append(f"## {layer} — {LAYER_WHEN[layer]}")
         out.append("")
-        out.append("| Slug | Kind | Rolle | Bezogen |")
-        out.append("|---|---|---|---|")
+        out.append("| Slug | Kind | Status | Rolle | Bezogen |")
+        out.append("|---|---|---|---|---|")
         for e in sorted(by_layer[layer], key=lambda x: x["slug"]):
-            out.append(f"| `{e['slug']}` | {e['kind']} | {e['role']} | {'ja' if e['fetched'] else '**nein**'} |")
+            alias = (" · Alias: " + ", ".join(a["slug"] for a in e["aliases"])
+                     if e.get("aliases") else "")
+            out.append(f"| `{e['slug']}` | {e['kind']} | {e['status']} | "
+                       f"{e['role']}{alias} | {'ja' if e['fetched'] else '**nein**'} |")
         out.append("")
     open(os.path.join(ROOT, "INDEX.md"), "w").write("\n".join(out) + "\n")
     missing = [e["slug"] for e in entries if not e["fetched"]]
-    print(f"cards={cards} manifest={len(entries)} missing={len(missing)}")
+    print(f"cards={cards} manifest={len(entries)} aliases={len(aliases)} missing={len(missing)}")
     if missing:
         print("MISSING: " + ", ".join(missing))
 

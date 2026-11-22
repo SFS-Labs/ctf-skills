@@ -3,6 +3,8 @@
 
 Ein Codepfad fuer public UND private Repos: GitHub-API-Tarball mit Bearer-Token.
 Idempotent: vorhandenes .fetched wird uebersprungen (--force erzwingt neu).
+Alias-Zeilen (alias_of=... in Spalte 6) werden uebersprungen: der Beweis steht dort,
+der Klon existiert schon unter dem Ziel-Slug.
 """
 import json
 import os
@@ -13,8 +15,11 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from repos_tsv import RepoTableError, load  # noqa: E402
+
 HOME = os.path.expanduser("~")
-ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+ROOT = os.path.join(HOME, "ctf-skills")
 TSV = os.path.join(ROOT, "repos.tsv")
 VENDOR = os.path.join(ROOT, "vendor")
 LOGDIR = os.path.join(ROOT, "logs")
@@ -35,6 +40,7 @@ def token():
 
 
 TOK = token()
+AUTH = ["-H", "Authorization: Bearer " + TOK] if TOK else []
 
 
 def log(msg):
@@ -47,8 +53,8 @@ def log(msg):
 
 def api(path):
     out = subprocess.run(
-        ["curl", "-sS", "-H", f"Authorization: Bearer {TOK}",
-         "-H", "Accept: application/vnd.github+json", f"https://api.github.com{path}"],
+        ["curl", "-sS", *AUTH, "-H", "Accept: application/vnd.github+json",
+         f"https://api.github.com{path}"],
         capture_output=True, text=True, timeout=120)
     try:
         return json.loads(out.stdout or "{}")
@@ -57,7 +63,7 @@ def api(path):
 
 
 def fetch(row):
-    slug, repo, cls = row[0], row[1], row[2]
+    slug, repo, cls = row["slug"], row["repo"], row["cls"]
     org, name = repo.split("/", 1)
     dest = os.path.join(VENDOR, org, name)
     marker = os.path.join(dest, ".fetched")
@@ -76,8 +82,7 @@ def fetch(row):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     for attempt in (1, 2, 3):
         r = subprocess.run(
-            ["curl", "-sSL", "--retry", "2", "--max-time", "1800",
-             "-H", f"Authorization: Bearer {TOK}",
+            ["curl", "-sSL", "--retry", "2", "--max-time", "1800", *AUTH,
              "-o", tmp, f"https://api.github.com/repos/{repo}/tarball/{branch}"],
             capture_output=True, text=True)
         if r.returncode == 0 and os.path.exists(tmp) and os.path.getsize(tmp) > 1024:
@@ -112,19 +117,20 @@ def fetch(row):
     log(f"OK   {slug} {repo} @{branch} {size/1048576:.1f}MB [{n}/{TOTAL}]")
 
 
-rows = []
-with open(TSV) as fh:
-    for line in fh:
-        line = line.rstrip("\n")
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        rows.append(line.split("\t"))
+try:
+    rows, aliases = load(TSV)
+except RepoTableError as exc:
+    sys.exit("repos.tsv: %s" % exc)
+for a in aliases:
+    print("SKIP alias %s -> %s (kein zweiter Klon, Beweis %s)"
+          % (a["slug"], a["target"], a["tree_sha256"][:12]), flush=True)
 if limit:
     rows = rows[:limit]
 TOTAL = len(rows)
 os.makedirs(VENDOR, exist_ok=True)
 os.makedirs(LOGDIR, exist_ok=True)
-log(f"START {TOTAL} repos, auth={'yes' if TOK else 'no'}")
+log(f"START {TOTAL} Baeume ({len(aliases)} Alias uebersprungen), "
+    f"auth={'yes' if TOK else 'no'}")
 started = time.time()
 with ThreadPoolExecutor(max_workers=4) as pool:
     list(pool.map(fetch, rows))

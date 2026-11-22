@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Reproduzierbarer V7/V8-Vergleich auf einem festen Testfall-Satz.
+
+V7  = `bin/skill plan <task>` (statische Layer-Kette, unveraendert)
+V8  = `bin/skill-orchestrator.py route <task>` (Capability-Auswahl + Domaenengate)
+
+Bewertet werden Kandidatenpraezision/-rekall gegen ein handgesetztes Soll,
+Fehlaktivierungen bei sachfremden Aufgaben und die Zahl tatsaechlich
+ausfuehrbarer Kandidaten. Der Vergleich ist bewusst konservativ: V7 wird
+nicht kuenstlich schlechter gemacht, V8 nicht besser gerechnet.
+"""
+from pathlib import Path
+import importlib.util
+import json
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+
+ROOT = Path(__file__).resolve().parent.parent
+V7 = ROOT / "bin" / "skill"
+V8 = ROOT / "bin" / "skill-orchestrator.py"
+
+CASES = [
+    {"id": "reentrancy", "evm": True,
+     "task": "Solidity Vault: reentrancy in withdraw drains the balance",
+     "expect": ["slither", "echidna", "medusa", "surya"]},
+    {"id": "underflow", "evm": True,
+     "task": "Solidity DEX emergencyWithdraw unchecked underflow and balance accounting",
+     "expect": ["slither", "echidna", "properties", "surya"]},
+    {"id": "eip712", "evm": True,
+     "task": "Analyze solidity claim EIP712 signature signer replay",
+     "expect": ["canonical-signatures", "slither", "mythril", "pyevmasm"]},
+    {"id": "bytecode", "evm": True,
+     "task": "Bytecode-only analysis of an unverified deployed contract",
+     "expect": ["evm-cfg-builder", "pyevmasm", "abi-guesser", "canonical-signatures"]},
+    {"id": "upgrade", "evm": True,
+     "task": "Verify Solidity proxy upgrade storage layout diff between two versions",
+     "expect": ["diffusc", "slither", "oz-upgrades", "bytecode-verifier"]},
+    {"id": "solana", "evm": False,
+     "task": "Review a Solana Anchor program for missing signer checks",
+     "expect": ["solana-lints", "slowmist-solana-bp"]},
+    {"id": "move", "evm": False,
+     "task": "Review a Move module for resource safety and abort codes",
+     "expect": ["movevm", "move-over-ctf", "amarna"]},
+    {"id": "unrelated", "evm": False,
+     "task": "Write social media marketing copy for a bakery",
+     "expect": []},
+]
+
+
+def load_v8():
+    spec = importlib.util.spec_from_file_location("sfs_orchestrator_compare", V8)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def v7_select(task):
+    out = subprocess.run([sys.executable, str(V7), "plan", task],
+                         capture_output=True, text=True, timeout=120)
+    slugs = []
+    for line in out.stdout.splitlines():
+        m = re.match(r"^\s{2}L\d\s+(\S+)\s", line)
+        if m:
+            slugs.append(m.group(1))
+    return slugs
+
+
+def v8_select(module, task):
+    answer = module.route(task, ROOT)
+    if answer["status"] == "ROUTED_NOT_EXECUTED":
+        return [c["slug"] for c in answer["candidates"]], answer
+    return [c["slug"] for c in answer.get("domain_candidates", [])], answer
+
+
+def score(selected, expect):
+    hit = [s for s in selected if s in expect]
+    missing = [s for s in expect if s not in selected]
+    extra = [s for s in selected if s not in expect]
+    precision = round(len(hit) / len(selected), 3) if selected else None
+    recall = round(len(hit) / len(expect), 3) if expect else None
+    return {"selected": len(selected), "hit": hit, "missing": missing,
+            "extra": extra, "precision": precision, "recall": recall}
+
+
+def main():
+    module = load_v8()
+    rows = []
+    for case in CASES:
+        v7 = v7_select(case["task"])
+        v8, answer = v8_select(module, case["task"])
+        rows.append({"case": case["id"], "task": case["task"],
+                     "expect": case["expect"],
+                     "v7": {"slugs": v7, **score(v7, case["expect"])},
+                     "v8": {"slugs": v8, "status": answer["status"],
+                            **score(v8, case["expect"])}})
+
+    def agg(key):
+        vals = [r[key]["precision"] for r in rows if r[key]["precision"] is not None]
+        recalls = [r[key]["recall"] for r in rows if r[key]["recall"] is not None]
+        return {"mean_precision": round(sum(vals) / len(vals), 3) if vals else None,
+                "mean_recall": round(sum(recalls) / len(recalls), 3) if recalls else None,
+                "false_activation_cases": [r["case"] for r in rows
+                                           if not r["expect"] and r[key]["slugs"]],
+                "avg_selected": round(sum(r[key]["selected"] for r in rows) / len(rows), 2)}
+
+    summary = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               "cases": rows, "aggregate": {"v7": agg("v7"), "v8": agg("v8")}}
+    outdir = ROOT / "logs"
+    outdir.mkdir(exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    (outdir / f"compare-v7-v8-{stamp}.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    print("| Fall | Soll | V7 gewaehlt | V7 P/R | V8 gewaehlt | V8 P/R |")
+    print("|---|---|---|---|---|---|")
+    for r in rows:
+        def pr(x):
+            if x["precision"] is None:
+                return "-"
+            rec = "-" if x["recall"] is None else f"{x['recall']:.2f}"
+            return f"{x['precision']:.2f}/{rec}"
+        print(f"| {r['case']} | {len(r['expect'])} | {len(r['v7']['slugs'])} | {pr(r['v7'])} | "
+              f"{len(r['v8']['slugs'])} | {pr(r['v8'])} |")
+    print()
+    for key in ("v7", "v8"):
+        a = summary["aggregate"][key]
+        print(f"{key.upper()}: mean_precision={a['mean_precision']} mean_recall={a['mean_recall']} "
+              f"avg_selected={a['avg_selected']} false_activations={a['false_activation_cases']}")
+    print(json.dumps(summary["aggregate"], indent=2))
+
+
+if __name__ == "__main__":
+    main()

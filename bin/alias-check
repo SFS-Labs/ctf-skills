@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""alias-check — rechnet Alias-Beweise nach, lokal und gegen den Remote.
+
+Ein Alias in repos.tsv ist nur dann eine Tatsache, wenn sein gepinnter
+tree_sha256 zum Baum passt. Dieses Skript prueft beide Seiten:
+
+  bin/alias-check              vendor/<ziel> und Remote-Archiv vergleichen
+  bin/alias-check --local      nur den lokalen Baum gegen den Pin
+  bin/alias-check <slug> ...   nur diese Aliasse
+  bin/alias-check --update     nach erfolgreichem Remote-Vergleich neu pinnen
+
+Der Remote-Pfad ist `github.com/<owner>/<repo>/archive/HEAD.tar.gz` — anonym,
+ohne Token, damit die Pruefung auch bei ungueltigem GitHub-Token funktioniert.
+
+Exit: 0 Beweis stimmt · 1 Abweichung · 2 Aufruf/repos.tsv nicht lesbar
+"""
+import io
+import os
+import sys
+import tarfile
+import tempfile
+import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from repos_tsv import RepoTableError, load, tree_digest
+
+ROOT = os.path.join(os.path.expanduser("~"), "ctf-skills")
+TSV = os.path.join(ROOT, "repos.tsv")
+UA = "ctf-skills-alias-check"
+
+
+def remote_digest(repo):
+    """Digest des HEAD-Archivs eines oeffentlichen Repos (ohne Auth)."""
+    req = urllib.request.Request("https://github.com/%s/archive/HEAD.tar.gz" % repo,
+                                 headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=300) as resp:
+        blob = resp.read()
+    with tempfile.TemporaryDirectory() as tmp:
+        with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as tf:
+            tf.extractall(tmp, filter="data")
+        tops = [d for d in os.listdir(tmp) if os.path.isdir(os.path.join(tmp, d))]
+        if len(tops) != 1:
+            raise RepoTableError("Archiv von %s hat %d Wurzelverzeichnisse"
+                                 % (repo, len(tops)))
+        return tree_digest(os.path.join(tmp, tops[0]))
+
+
+def pin(alias, digest, files):
+    """Schreibt den Beweis in die Alias-Zeile, ohne die uebrigen Spalten anzufassen."""
+    lines = open(TSV, encoding="utf-8").read().splitlines(True)
+    out, hit = [], False
+    for line in lines:
+        parts = line.rstrip("\n").split("\t")
+        if parts and parts[0] == alias["slug"]:
+            parts[5] = "alias_of=%s; tree_sha256=%s; files=%d" % (alias["target"], digest, files)
+            line = "\t".join(parts) + "\n"
+            hit = True
+        out.append(line)
+    if not hit:
+        raise RepoTableError("Zeile fuer %s nicht gefunden" % alias["slug"])
+    with open(TSV, "w", encoding="utf-8") as fh:
+        fh.writelines(out)
+
+
+def main(args):
+    local_only = "--local" in args
+    update = "--update" in args
+    wanted = [a for a in args if not a.startswith("-")]
+    if update and local_only:
+        print("--update braucht die Remote-Pruefung; --local reicht dafuer nicht",
+              file=sys.stderr)
+        return 2
+    try:
+        rows, aliases = load(TSV)
+    except RepoTableError as exc:
+        print("repos.tsv: %s" % exc, file=sys.stderr)
+        return 2
+    if wanted:
+        missing = sorted(set(wanted) - {a["slug"] for a in aliases})
+        if missing:
+            print("kein Alias: %s" % ", ".join(missing), file=sys.stderr)
+            return 2
+        aliases = [a for a in aliases if a["slug"] in wanted]
+    if not aliases:
+        print("keine Alias-Zeilen in repos.tsv")
+        return 0
+    by_slug = {r["slug"]: r for r in rows}
+    bad = 0
+    for a in aliases:
+        print("%s -> %s" % (a["slug"], a["target"]))
+        try:
+            tree = os.path.join(ROOT, "vendor", *by_slug[a["target"]]["repo"].split("/"))
+            d_local, n_local = tree_digest(tree)
+        except RepoTableError as exc:
+            print("  lokal   nicht pruefbar: %s" % exc)
+            bad += 1
+            continue
+        ok_local = (d_local, n_local) == (a["tree_sha256"], a["files"])
+        print("  lokal   %s %4d Dateien  %s"
+              % (d_local[:16], n_local,
+                 "stimmt" if ok_local else "ABWEICHEND (gepinnt %s, %d Dateien)"
+                 % (a["tree_sha256"][:16], a["files"])))
+        ok = ok_local
+        if not local_only:
+            try:
+                d_remote, n_remote = remote_digest(a["repo"])
+            except Exception as exc:  # Netz, HTTP, kaputtes Archiv
+                print("  remote  nicht pruefbar: %s: %s" % (type(exc).__name__, exc))
+                bad += 1
+                continue
+            ok_remote = (d_remote, n_remote) == (d_local, n_local)
+            print("  remote  %s %4d Dateien  %s"
+                  % (d_remote[:16], n_remote,
+                     "stimmt" if ok_remote else "ABWEICHEND vom lokalen Baum"))
+            if ok_remote and not ok_local and update:
+                pin(a, d_remote, n_remote)
+                print("  gepinnt %s, %d Dateien (repos.tsv aktualisiert)"
+                      % (d_remote[:16], n_remote))
+                ok = True
+            elif ok_remote and not ok_local:
+                print("  -> Baum und Remote sind identisch, der Pin ist veraltet: "
+                      "`--update` setzt ihn neu")
+                ok = False
+            else:
+                ok = ok_local and ok_remote
+        if not ok:
+            bad += 1
+    print("%d Alias(se) geprueft, %d Abweichung(en)" % (len(aliases), bad))
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
