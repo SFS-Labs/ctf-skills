@@ -34,7 +34,11 @@ class PreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "challenge"
             project.mkdir()
-            _, report = self.invoke("--project", str(project), "--skills-root", str(ROOT))
+            skills = Path(tmp) / "skills"
+            source = skills / ".agents/skills/ctf-skill-index-v8/SKILL.md"
+            source.parent.mkdir(parents=True)
+            source.write_text("---\\nname: ctf-skill-index-v8\\n---\\n", encoding="utf-8")
+            _, report = self.invoke("--project", str(project), "--skills-root", str(skills))
             self.assertEqual(report["checks"]["project_v8_skill"]["status"],
                              "MISSING_IN_ACTIVE_PROJECT")
             self.assertEqual(report["checks"]["v8_skill"]["status"],
