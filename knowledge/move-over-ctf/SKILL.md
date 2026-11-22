@@ -29,7 +29,7 @@ Semantik-Nachschlagewerk: ‚was tut die EVM hier wirklich'.
 - kein fertiges Werkzeug; Referenz zum Nachschlagen von Semantik.
 - Aktualitaet und projektspezifische Besonderheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`, `seal-911`, `seal-frameworks`, `blockchain-security-contacts`.
 Nach diesem Skill weiter mit Layer L9.
 
