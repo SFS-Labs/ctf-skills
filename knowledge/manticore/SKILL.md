@@ -13,6 +13,8 @@ pairs_with: [mythril, evm-cfg-builder, pyevmasm, etheno, abi-guesser, canonical-
 
 **Repo:** `trailofbits/manticore` · **Layer:** L4 · **Klasse:** PY · **Bezogen:** ja (branch `master`, Lizenz AGPL-3.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** uv tool installiert (3.9/3.10); Start scheitert an protobuf-Descriptor bzw. wasm/collections.Callable -> gepinnte Umgebung noetig
+
 ## Zweck
 Symbolische Ausfuehrung.
 
@@ -20,16 +22,16 @@ Symbolische Ausfuehrung.
 wenn ein statischer Treffer einen konkreten Pfad braucht.
 
 ## Kommando
-`manticore` (via `uv tool`); Hilfe: `manticore --help`
+kein Kommando — uv tool installiert (3.9/3.10); Start scheitert an protobuf-Descriptor bzw. wasm/collections.Callable -> gepinnte Umgebung noetig; Quelle: `vendor/trailofbits/manticore`
 
 ## Deutung der Ausgabe
-Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestätigt wird über L3 (Counterexample) oder L4 (Pfad).
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - Pfad-Explosion, Loops und Hash-/Krypto-Logik brechen es.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `mythril`, `evm-cfg-builder`, `pyevmasm`, `etheno`, `abi-guesser`, `canonical-signatures`.
 Nach diesem Skill weiter mit Layer L5.
 

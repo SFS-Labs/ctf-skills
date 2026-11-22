@@ -29,7 +29,7 @@ Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestäti
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - sieht zeitliche, oekonomische und Cross-Contract-Fehler nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `slither`, `surya`, `bytecode-verifier`, `slither-mcp`, `echidna`, `medusa`, `properties`, `scribble`.
 Nach diesem Skill weiter mit Layer L3.
 

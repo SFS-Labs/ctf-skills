@@ -13,6 +13,8 @@ pairs_with: [mythril, manticore, evm-cfg-builder, pyevmasm, etheno, abi-guesser,
 
 **Repo:** `trailofbits/ManticoreUI` · **Layer:** L4 · **Klasse:** ARCH · **Bezogen:** ja (branch `master`, Lizenz AGPL-3.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben
+
 ## Zweck
 GUI zu Manticore.
 
@@ -20,16 +22,16 @@ GUI zu Manticore.
 wenn ein statischer Treffer einen konkreten Pfad braucht.
 
 ## Kommando
-kein Kommando — Regeln/Ideen entnehmen, Tool nicht betreiben
+kein Kommando — archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben; Quelle: `vendor/trailofbits/ManticoreUI`
 
 ## Deutung der Ausgabe
-Historische Regeln; Detektoren können veraltet sein.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - Original ist archiviert/ueberholt: Regeln und Ideen nutzen, nicht betreiben.
 - Pfad-Explosion, Loops und Hash-/Krypto-Logik brechen es.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `mythril`, `manticore`, `evm-cfg-builder`, `pyevmasm`, `etheno`, `abi-guesser`, `canonical-signatures`.
 Nach diesem Skill weiter mit Layer L5.
 

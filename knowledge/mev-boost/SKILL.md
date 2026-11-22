@@ -29,7 +29,7 @@ Assertion-Verletzung mit Call-Sequenz; Coverage sagt, was überhaupt erreichbar 
 - wie RS: Qualitaet der Properties entscheidet, nicht die Worker-Zahl.
 - sagt nichts ueber Code-Korrektheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`, `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`.
 Nach diesem Skill weiter mit Layer L8.
 
