@@ -10,7 +10,7 @@ import json
 import os
 import sys
 
-ROOT = os.path.join(os.path.expanduser("~"), "ctf-skills")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 MAN = os.path.join(ROOT, "manifest.json")
 NEXT = {"L0": "L1", "L1": "L2", "L2": "L3", "L3": "L4", "L4": "L5",
         "L5": "L6", "L6": "L7", "L7": "L8", "L8": "L9", "L9": "L9"}

@@ -6,7 +6,7 @@ import re
 import time
 
 HOME = os.path.expanduser("~")
-ROOT = os.path.join(HOME, "ctf-skills")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 VENDOR = os.path.join(ROOT, "vendor")
 KN = os.path.join(ROOT, "knowledge")
 

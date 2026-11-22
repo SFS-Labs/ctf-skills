@@ -19,4 +19,4 @@ The public `SFS-Labs/ctf-skills` repository is the canonical destination for con
 
 ## Current status
 
-This file is an integration specification, **not evidence that the repositories have already been merged**. The source repository remains public and active until acceptance.
+All 170 factory source files excluding its original root README and .gitignore were imported into the PR branch. A Git SHA and executable-mode comparison against the source tree returned zero mismatches. The canonical README and ignore rules have been consolidated. **Merge and source archival remain pending until new CI and review pass.** The historical local STATUS/VERIFICATION outputs are not current CI evidence.

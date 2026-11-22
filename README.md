@@ -2,10 +2,44 @@
 
 [Agent Skills](https://agentskills.io) for solving CTF challenges — web exploitation, binary pwn, crypto, reverse engineering, forensics, OSINT, and more. Works with any tool that supports the Agent Skills spec, including [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
+## Integrated repository: Agent Skills + Security Skill Factory
+
+This repository combines two complementary layers:
+
+- **CTF Agent Skills**: the existing top-level `ctf-*/SKILL.md` and `solve-challenge/SKILL.md` skill packs, derived from [Lukasz Jagiello's ctf-skills](https://github.com/ljagiello/ctf-skills). Their original [MIT license and copyright attribution](LICENSE) remain intact.
+- **SFS-Labs Security Skill Factory**: **134 reference/knowledge cards** under `knowledge/<slug>/SKILL.md`, with a local router, recipes, manifests, and optional security benchmark gateways. These 134 cards are **not** 134 installed or independently executable security tools.
+
+### Factory quick start (offline, no tools installed)
+
+```bash
+git clone https://github.com/SFS-Labs/ctf-skills.git
+cd ctf-skills
+python3 bin/skill list --layer=L3
+python3 bin/skill show slither
+python3 bin/skill find reentrancy
+python3 bin/skill plan "solidity upgrade"
+python3 -m unittest discover -s benchmarks/tests -v
+python3 -m pytest tests -q
+```
+
+`bin/skill` reads the checked-out repository's `manifest.json`; browsing the cards and generating a plan does not require downloading third-party tools. The factory's original local-runtime snapshots in [STATUS.md](STATUS.md) and [VERIFICATION.md](VERIFICATION.md) are historical evidence from its former environment, **not** independent verification on this repository's CI runner.
+
+| Factory path | Purpose |
+| --- | --- |
+| `knowledge/`, `INDEX.md`, `MANIFEST.yaml`, `manifest.json`, `repos.tsv` | 134 references, layers, metadata, and skill discovery |
+| `bin/skill` | Offline list/show/find/plan router |
+| `bin/fetch`, `bin/install_bin`, `bin/doctor`, `bin/gen_skills` | Optional local provisioning, diagnostics, and regeneration |
+| `bin/smoke`, `recipes/`, `corpora/` | Optional local test harnesses and build recipes; some need external binaries |
+| `benchmarks/` | Security benchmark adapters, fixtures, unit tests, and manually dispatched workflows |
+
+Factory tools requiring network access can download large third-party repositories or install binaries. Do not run `bin/fetch`, `bin/install_bin`, or `bin/smoke` merely to browse the knowledge cards. `bin/push` is an optional authenticated write utility, not a backup service; publishing to this **public** repository requires the explicit `--allow-public` flag and a suitable GitHub token. No secrets, `vendor/` trees, virtual environments, local logs, or generated tool outputs belong in Git.
+
+See [Factory integration and verification](docs/FACTORY_INTEGRATION.md) for migration scope, tests, and operational boundaries.
+
 ## Installation
 
 ```bash
-npx skills add ljagiello/ctf-skills
+npx skills add SFS-Labs/ctf-skills
 ```
 
 ## Run with Friday Studio
@@ -18,7 +52,7 @@ To add these skills to Friday Studio:
 
 1. Install Friday from [hellofriday.ai](https://hellofriday.ai/) (macOS).
 2. Open **Skills** in the Studio sidebar and click **+ Add**.
-3. Import individual skills by reference (e.g. `ljagiello/ctf-skills/ctf-web`), or upload this repo as a folder.
+3. Import individual skills by reference (e.g. `SFS-Labs/ctf-skills/ctf-web`), or upload this repo as a folder.
 4. Reference them from any `workspace.yml`, or let agents load them automatically based on the skill description.
 
 See the [Friday Skills docs](https://docs.hellofriday.ai/core-concepts/skills) for the full workflow, and the [Friday blog](https://blog.hellofriday.ai/) — including [AI Drift: The Hidden Cost of Building with AI](https://blog.hellofriday.ai/ai-drift-the-hidden-cost-of-building-with-ai-e2b51415b3b0) — for the philosophy behind it.

@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import time
 
-ROOT = os.path.join(os.path.expanduser("~"), "ctf-skills")
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 ENTRY = {
     "slither": "slither", "crytic-compile": "crytic-compile", "solc-select": "solc-select",
     "mythril": "myth", "scribble": "scribble", "surya": "surya", "solhint": "solhint",
@@ -54,7 +54,7 @@ def main():
     skills = json.load(open(os.path.join(ROOT, "manifest.json")))["skills"]
     lines = ["# STATUS", "", f"Stand: {time.strftime('%Y-%m-%d %H:%M')}", "",
              "Verifikationsnachweis: siehe `VERIFICATION.md` (echte Laeufe, keine --help-Tests).",
-             "Sicherung: privates Repo `SFS-Labs/ctf-skill-factory`; Wiederherstellung per `git clone` + `python3 bin/fetch`.",
+             "Quelle: `SFS-Labs/ctf-skills`; lokale Laufzeitnachweise sind nicht mit GitHub-Tests gleichzusetzen.",
              "`vendor/`, `venvs/`, `tools/`, `logs/` liegen bewusst **nicht** im Repo (siehe `README.md`).", "",
              "## Ausfuehrbare Skills", "", "| Skill | Binary | Status | Antwort |", "|---|---|---|---|"]
     ok = bad = 0

@@ -37,7 +37,7 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DULWICH_PY = os.path.expanduser("~/.local/share/uv/tools/dulwich/bin/python")
-DEFAULT_REPO = "SFS-Labs/ctf-skill-factory"
+DEFAULT_REPO = "SFS-Labs/ctf-skills"
 DEFAULT_BRANCH = "main"
 DEFAULT_IDENT = "SFS-Labs <sfs-labs@users.noreply.github.com>"
 API = "https://api.github.com/repos/%s/git/ref/heads/%s"
@@ -337,6 +337,7 @@ def main(argv):
     ap.add_argument("-F", "--msg-file", default="", help="Commit-Nachricht aus Datei")
     ap.add_argument("--add", action="append", default=[], help="Pfad zum Stagen (mehrfach moeglich)")
     ap.add_argument("--repo", default=DEFAULT_REPO)
+    ap.add_argument("--allow-public", action="store_true", help="bewusstes Schreiben in ein oeffentliches Repo erlauben")
     ap.add_argument("--branch", default=DEFAULT_BRANCH)
     ap.add_argument("--ident", default=DEFAULT_IDENT)
     ap.add_argument("--_worker", action="store_true", help=argparse.SUPPRESS)
@@ -363,6 +364,12 @@ def main(argv):
         die(err, 2, secrets)
     if msg and not args.add:
         die("--add fehlt: ohne Pfadliste wuerde ein leerer Commit entstehen", 2, secrets)
+    try:
+        is_private, _ = api_visibility(args.repo, tok)
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError) as exc:
+        die("Repository-Sichtbarkeit vor Push nicht pruefbar: %s" % type(exc).__name__, 3, secrets)
+    if is_private is not True and not args.allow_public:
+        die("oeffentliches oder unbekanntes Repository: Push nur mit --allow-public", 2, secrets)
     rc, pushed = run_worker(args, secrets, msg)
     if rc != 0 or not pushed:
         out("ergebnis: Push fehlgeschlagen (exit %s)" % rc, secrets)
