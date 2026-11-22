@@ -1,6 +1,6 @@
-# generiert von bin/gen_skills — 2026-11-21T04:08:57
+# generiert von bin/gen_skills — 2026-11-21T08:24:21
 home: "/home/sfs-linux-node/ctf-skills"
-count: 134
+count: 133
 skills:
   - slug: "sfs-ctf-skills"
     org: "SFS-Labs"
@@ -10,6 +10,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/SFS-Labs/ctf-skills"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -49,6 +51,8 @@ skills:
     layer: "L3"
     install: "npm -g"
     vendor: "vendor/SFS-Labs/DamnVulnerableCryptoApp"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -88,6 +92,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/SFS-Labs/awesome-cryptocurrency-security"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: null
@@ -127,6 +133,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/offensive-security/exploitdb"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "master"
     license: "GPL-2.0"
@@ -156,6 +164,8 @@ skills:
     layer: "L5"
     install: "keine Installation"
     vendor: "vendor/zhaoxuya520/reverse-skill"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -196,6 +206,8 @@ skills:
     layer: "L2"
     install: "uv tool"
     vendor: "vendor/crytic/slither"
+    status: "binary"
+    status_reason: "`slither` im PATH"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -236,6 +248,8 @@ skills:
     layer: "L3"
     install: "release-binary"
     vendor: "vendor/crytic/echidna"
+    status: "binary"
+    status_reason: "`echidna` im PATH"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -274,6 +288,8 @@ skills:
     layer: "L3"
     install: "release-binary"
     vendor: "vendor/crytic/medusa"
+    status: "binary"
+    status_reason: "`medusa` im PATH"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -307,6 +323,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/crytic/building-secure-contracts"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -340,6 +358,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/crytic/not-so-smart-contracts"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -372,6 +392,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/crytic/awesome-ethereum-security"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: "CC-BY-4.0"
@@ -411,6 +433,8 @@ skills:
     layer: "L9"
     install: "keine Installation"
     vendor: "vendor/crytic/blockchain-security-contacts"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "master"
     license: "CC-BY-4.0"
@@ -449,6 +473,8 @@ skills:
     layer: "L3"
     install: "keine Installation"
     vendor: "vendor/crytic/properties"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -487,6 +513,8 @@ skills:
     layer: "L2"
     install: "release-binary"
     vendor: "vendor/crytic/optik"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/crytic/optik mit cargo/go noetig"
     fetched: true
     branch: "master"
     license: "NOASSERTION"
@@ -527,6 +555,8 @@ skills:
     layer: "L3"
     install: "uv tool"
     vendor: "vendor/crytic/fuzz-utils"
+    status: "binary"
+    status_reason: "`fuzz-utils` im PATH"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -566,6 +596,8 @@ skills:
     layer: "L3"
     install: "docker (auf dieser Maschine nicht verfuegbar)"
     vendor: "vendor/crytic/attacknet"
+    status: "referenz"
+    status_reason: "braucht Docker; auf dieser Maschine nicht lauffaehig"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -605,6 +637,8 @@ skills:
     layer: "L6"
     install: "release-binary"
     vendor: "vendor/crytic/diffusc"
+    status: "binary"
+    status_reason: "`diffusc` im PATH"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -644,6 +678,8 @@ skills:
     layer: "L2"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/caracal"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -684,6 +720,8 @@ skills:
     layer: "L2"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/amarna"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -724,6 +762,8 @@ skills:
     layer: "L2"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/tayt"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -764,6 +804,8 @@ skills:
     layer: "L2"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/tealer"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -804,6 +846,8 @@ skills:
     layer: "L2"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/solana-lints"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: null
@@ -838,6 +882,8 @@ skills:
     layer: "L5"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/rattle"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: null
@@ -874,6 +920,8 @@ skills:
     layer: "L5"
     install: "uv tool"
     vendor: "vendor/crytic/etheno"
+    status: "binary"
+    status_reason: "`etheno` im PATH"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -914,6 +962,8 @@ skills:
     layer: "L5"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/ethersplay"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -953,6 +1003,8 @@ skills:
     layer: "L5"
     install: "keine Installation"
     vendor: "vendor/crytic/evm-opcodes"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -991,6 +1043,8 @@ skills:
     layer: "L5"
     install: "uv tool"
     vendor: "vendor/crytic/pyevmasm"
+    status: "binary"
+    status_reason: "`evmasm` im PATH"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -1026,6 +1080,8 @@ skills:
     layer: "L5"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/crytic/ida-evm"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -1057,6 +1113,8 @@ skills:
     layer: "L5"
     install: "uv tool"
     vendor: "vendor/crytic/evm_cfg_builder"
+    status: "binary"
+    status_reason: "`evm-cfg-builder` im PATH"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -1097,6 +1155,8 @@ skills:
     layer: "L1"
     install: "uv tool"
     vendor: "vendor/crytic/crytic-compile"
+    status: "binary"
+    status_reason: "`crytic-compile` im PATH"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -1132,6 +1192,8 @@ skills:
     layer: "L1"
     install: "uv tool"
     vendor: "vendor/crytic/solc-select"
+    status: "binary"
+    status_reason: "`solc-select` im PATH"
     fetched: true
     branch: "dev"
     license: "AGPL-3.0"
@@ -1171,6 +1233,8 @@ skills:
     layer: "L3"
     install: "docker (auf dieser Maschine nicht verfuegbar)"
     vendor: "vendor/crytic/cloudexec"
+    status: "referenz"
+    status_reason: "braucht Docker; auf dieser Maschine nicht lauffaehig"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -1210,6 +1274,8 @@ skills:
     layer: "L3"
     install: "release-binary"
     vendor: "vendor/crytic/fluxture"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/crytic/fluxture mit cargo/go noetig"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -1248,6 +1314,8 @@ skills:
     layer: "L2"
     install: "keine Installation"
     vendor: "vendor/crytic/slither-action"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -1288,6 +1356,8 @@ skills:
     layer: "L3"
     install: "keine Installation"
     vendor: "vendor/crytic/echidna-action"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -1327,6 +1397,8 @@ skills:
     layer: "L2"
     install: "keine Installation"
     vendor: "vendor/crytic/slither-docs-action"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: "NOASSERTION"
@@ -1366,6 +1438,8 @@ skills:
     layer: "L4"
     install: "uv tool"
     vendor: "vendor/trailofbits/manticore"
+    status: "referenz"
+    status_reason: "uv tool installiert (3.9/3.10); Start scheitert an protobuf-Descriptor bzw. wasm/collections.Callable -> gepinnte Umgebung noetig"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -1404,6 +1478,8 @@ skills:
     layer: "L2"
     install: "docker (auf dieser Maschine nicht verfuegbar)"
     vendor: "vendor/trailofbits/eth-security-toolbox"
+    status: "referenz"
+    status_reason: "braucht Docker; auf dieser Maschine nicht lauffaehig"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -1444,6 +1520,8 @@ skills:
     layer: "L2"
     install: "uv tool"
     vendor: "vendor/trailofbits/slither-mcp"
+    status: "binary"
+    status_reason: "`slither-mcp` im PATH"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -1484,6 +1562,8 @@ skills:
     layer: "L4"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/trailofbits/ManticoreUI"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -1513,6 +1593,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/trailofbits/zkdocs"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "CC-BY-4.0"
@@ -1552,6 +1634,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/trailofbits/publications"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: "CC-BY-SA-4.0"
@@ -1591,6 +1675,8 @@ skills:
     layer: "L4"
     install: "uv tool"
     vendor: "vendor/ConsenSysDiligence/mythril"
+    status: "binary"
+    status_reason: "`myth` im PATH"
     fetched: true
     branch: "develop"
     license: "MIT"
@@ -1626,6 +1712,8 @@ skills:
     layer: "L3"
     install: "uv tool"
     vendor: "vendor/ConsenSysDiligence/scribble"
+    status: "binary"
+    status_reason: "`scribble` im PATH"
     fetched: true
     branch: "develop"
     license: "Apache-2.0"
@@ -1664,6 +1752,8 @@ skills:
     layer: "L3"
     install: "release-binary"
     vendor: "vendor/ConsenSysDiligence/diligence-fuzzing"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/ConsenSysDiligence/diligence-fuzzing mit cargo/go noetig"
     fetched: true
     branch: "master"
     license: "NOASSERTION"
@@ -1702,6 +1792,8 @@ skills:
     layer: "L3"
     install: "keine Installation"
     vendor: "vendor/ConsenSysDiligence/diligence-fuzzing-github-action"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -1736,6 +1828,8 @@ skills:
     layer: "L3"
     install: "uv tool"
     vendor: "vendor/ConsenSysDiligence/daedaluzz"
+    status: "binary"
+    status_reason: "`daedaluzz` im PATH"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -1765,6 +1859,8 @@ skills:
     layer: "L3"
     install: "npm -g"
     vendor: "vendor/ConsenSysDiligence/napalm"
+    status: "referenz"
+    status_reason: "npm-Paket ohne bin; require scheitert (MODULE_NOT_FOUND)"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -1802,6 +1898,8 @@ skills:
     layer: "L1"
     install: "npm -g"
     vendor: "vendor/ConsenSysDiligence/surya"
+    status: "binary"
+    status_reason: "`surya` im PATH"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -1840,6 +1938,8 @@ skills:
     layer: "L2"
     install: "npm -g"
     vendor: "vendor/ConsenSysDiligence/vscode-solidity-auditor"
+    status: "referenz"
+    status_reason: "VS-Code-Extension (.vsix), nicht headless aufrufbar"
     fetched: true
     branch: "master"
     license: "GPL-3.0"
@@ -1880,6 +1980,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/ConsenSysDiligence/smart-contract-best-practices"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: null
@@ -1918,6 +2020,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/ConsenSysDiligence/evm-analyzer-benchmark-suite"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -1949,6 +2053,8 @@ skills:
     layer: "L2"
     install: "uv tool"
     vendor: "vendor/ConsenSysDiligence/Legions"
+    status: "binary"
+    status_reason: "`legions` im PATH"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -1979,6 +2085,8 @@ skills:
     layer: "L4"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/ConsenSysDiligence/mythx-cli"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -2008,6 +2116,8 @@ skills:
     layer: "L6"
     install: "release-binary"
     vendor: "vendor/ConsenSysDiligence/bytecode-verifier"
+    status: "referenz"
+    status_reason: "Repo-API 404 (Quelle nicht mehr oeffentlich); Quellbaum liegt in vendor/ConsenSysDiligence/bytecode-verifier"
     fetched: true
     branch: "master"
     license: null
@@ -2047,6 +2157,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/ConsenSysDiligence/blockchainSecurityDB"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "master"
     license: null
@@ -2080,6 +2192,8 @@ skills:
     layer: "L6"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/OpenZeppelin/openzeppelin-contracts"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -2120,6 +2234,8 @@ skills:
     layer: "L6"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/OpenZeppelin/openzeppelin-contracts-upgradeable"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -2160,6 +2276,8 @@ skills:
     layer: "L7"
     install: "npm -g"
     vendor: "vendor/OpenZeppelin/openzeppelin-monitor"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -2200,6 +2318,8 @@ skills:
     layer: "L8"
     install: "npm -g"
     vendor: "vendor/OpenZeppelin/ethernaut"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "master"
     license: "AGPL-3.0"
@@ -2238,6 +2358,8 @@ skills:
     layer: "L8"
     install: "npm -g"
     vendor: "vendor/OpenZeppelin/damn-vulnerable-defi"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -2272,6 +2394,8 @@ skills:
     layer: "L6"
     install: "npm -g"
     vendor: "vendor/OpenZeppelin/openzeppelin-upgrades"
+    status: "bibliothek"
+    status_reason: "installiert; Nutzung als Modul, kein CLI"
     fetched: true
     branch: "master"
     license: "MIT"
@@ -2311,6 +2435,8 @@ skills:
     layer: "L6"
     install: "npm -g"
     vendor: "vendor/OpenZeppelin/openzeppelin-foundry-upgrades"
+    status: "bibliothek"
+    status_reason: "installiert; Nutzung als Modul, kein CLI"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -2351,6 +2477,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/OpenZeppelin/secure-development-cookbook"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -2390,6 +2518,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/OpenZeppelin/openzeppelin-skills"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -2429,6 +2559,8 @@ skills:
     layer: "L2"
     install: "release-binary"
     vendor: "vendor/OpenZeppelin/soroban-security-detectors-sdk"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/OpenZeppelin/soroban-security-detectors-sdk mit cargo/go noetig"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -2469,6 +2601,8 @@ skills:
     layer: "L9"
     install: "npm -g"
     vendor: "vendor/OpenZeppelin/defender-sdk"
+    status: "bibliothek"
+    status_reason: "installiert; Nutzung als Modul, kein CLI"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -2508,6 +2642,8 @@ skills:
     layer: "L6"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/OpenZeppelin/cairo-contracts"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -2548,6 +2684,8 @@ skills:
     layer: "L8"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/OpenZeppelin/move_over_ctf"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -2587,6 +2725,8 @@ skills:
     layer: "L8"
     install: "uv tool"
     vendor: "vendor/paradigmxyz/evmbench"
+    status: "referenz"
+    status_reason: "Web-App (frontend/backend/assets), kein CLI"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -2626,6 +2766,8 @@ skills:
     layer: "L1"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/paradigmxyz/solidity-lean"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -2666,6 +2808,8 @@ skills:
     layer: "L7"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/paradigmxyz/solidus"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -2706,6 +2850,8 @@ skills:
     layer: "L1"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/paradigmxyz/evmyullean"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -2713,46 +2859,11 @@ skills:
     archived: false
     bytes: 117540
     role: "Yul/EVM-Semantik in Lean"
-    triggers:
-      - "requirements"
-      - "project"
-      - "structure"
-      - "primops"
-      - "conformance"
-      - "testing"
-      - "semantics"
-      - "tests"
-      - "limitations"
-      - "fallback"
-      - "function"
-      - "receiving"
-    pairs_with:
-      - "crytic-compile"
-      - "solc-select"
-      - "surya"
-      - "solar"
-      - "slither"
-      - "surya"
-      - "bytecode-verifier"
-      - "slither-mcp"
-    blind_spots:
-      - "kein fertiges Werkzeug; Referenz zum Nachschlagen von Semantik."
-      - "kennt die Absicht des Autors nicht."
-  - slug: "evmyullean-nethermind"
-    org: "NethermindEth"
-    repo: "EVMYulLean"
-    class: "SRC"
-    kind: "source"
-    layer: "L1"
-    install: "keine Installation (Quell-Referenz)"
-    vendor: "vendor/NethermindEth/EVMYulLean"
-    fetched: true
-    branch: "main"
-    license: "Apache-2.0"
-    pushed_at: "2025-11-19T15:31:40Z"
-    archived: false
-    bytes: 117522
-    role: "Fork von solidity-lean (Divergenz-Vergleich)"
+    aliases:
+      - slug: "evmyullean-nethermind"
+        repo: "NethermindEth/EVMYulLean"
+        tree_sha256: "f27de34679ad5b6573a3ff387f14405b88f7bb98eb8fcc4c54a9a156c1210126"
+        files: 109
     triggers:
       - "requirements"
       - "project"
@@ -2786,6 +2897,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/paradigmxyz/paradigm-ctf-2021"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "master"
     license: null
@@ -2825,6 +2938,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/paradigmxyz/paradigm-ctf-2022"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -2864,6 +2979,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/paradigmxyz/paradigm-ctf-2023"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -2894,6 +3011,8 @@ skills:
     layer: "L8"
     install: "docker (auf dieser Maschine nicht verfuegbar)"
     vendor: "vendor/paradigmxyz/paradigm-ctf-infrastructure"
+    status: "referenz"
+    status_reason: "braucht Docker; auf dieser Maschine nicht lauffaehig"
     fetched: true
     branch: "main"
     license: null
@@ -2933,6 +3052,8 @@ skills:
     layer: "L7"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/paradigmxyz/artemis"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -2967,6 +3088,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/paradigmxyz/mev-share-rs"
+    status: "referenz"
+    status_reason: "Repo-API 404 (Quelle nicht mehr oeffentlich); Quellbaum liegt in vendor/paradigmxyz/mev-share-rs"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3002,6 +3125,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/paradigmxyz/cryo"
+    status: "binary"
+    status_reason: "`cryo` im PATH"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3040,6 +3165,8 @@ skills:
     layer: "L7"
     install: "keine Installation"
     vendor: "vendor/paradigmxyz/ultimate_evm_tracing_reference"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3080,6 +3207,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/paradigmxyz/zk-eth-rng"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "GPL-3.0"
@@ -3119,6 +3248,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/paradigmxyz/iron-proxy"
+    status: "binary"
+    status_reason: "`iron-proxy` im PATH"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3159,6 +3290,8 @@ skills:
     layer: "L1"
     install: "release-binary"
     vendor: "vendor/paradigmxyz/solar"
+    status: "binary"
+    status_reason: "`solar` im PATH"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3198,6 +3331,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/paradigmxyz/reth"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3238,6 +3373,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/Dstack-TEE/dstack"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/Dstack-TEE/dstack mit cargo/go noetig"
     fetched: true
     branch: "next"
     license: "Apache-2.0"
@@ -3278,6 +3415,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/r55-eth/r55"
+    status: "referenz"
+    status_reason: "Repo-API 404 (Quelle nicht mehr oeffentlich); Quellbaum liegt in vendor/r55-eth/r55"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -3318,6 +3457,8 @@ skills:
     layer: "L7"
     install: "npm -g"
     vendor: "vendor/openchainxyz/ethereum-transaction-viewer-frontend"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "master"
     license: null
@@ -3351,6 +3492,8 @@ skills:
     layer: "L7"
     install: "npm -g"
     vendor: "vendor/openchainxyz/openchain-monorepo"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -3384,6 +3527,8 @@ skills:
     layer: "L7"
     install: "npm -g"
     vendor: "vendor/openchainxyz/transaction-decoder"
+    status: "referenz"
+    status_reason: "npm-Paket ohne bin; require scheitert (MODULE_NOT_FOUND)"
     fetched: true
     branch: "master"
     license: null
@@ -3414,6 +3559,8 @@ skills:
     layer: "L5"
     install: "npm -g"
     vendor: "vendor/openchainxyz/abi-guesser"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "master"
     license: null
@@ -3446,6 +3593,8 @@ skills:
     layer: "L5"
     install: "npm -g"
     vendor: "vendor/openchainxyz/canonical-signatures"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -3478,6 +3627,8 @@ skills:
     layer: "L9"
     install: "keine Installation"
     vendor: "vendor/security-alliance/seal-911"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -3516,6 +3667,8 @@ skills:
     layer: "L9"
     install: "keine Installation"
     vendor: "vendor/security-alliance/frameworks"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "develop"
     license: "NOASSERTION"
@@ -3552,6 +3705,8 @@ skills:
     layer: "L0"
     install: "keine Installation"
     vendor: "vendor/security-alliance/safe-harbor"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "NOASSERTION"
@@ -3590,6 +3745,8 @@ skills:
     layer: "L9"
     install: "keine Installation"
     vendor: "vendor/security-alliance/drill-template"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "demo-drill"
     license: null
@@ -3629,6 +3786,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/security-alliance/advisories"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -3658,6 +3817,8 @@ skills:
     layer: "L7"
     install: "keine Installation"
     vendor: "vendor/security-alliance/blocklists"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -3689,6 +3850,8 @@ skills:
     layer: "L7"
     install: "keine Installation"
     vendor: "vendor/security-alliance/lazarus-group-data"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: "CC-BY-4.0"
@@ -3729,6 +3892,8 @@ skills:
     layer: "L7"
     install: "npm -g"
     vendor: "vendor/security-alliance/seal-intel-sdk"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "main"
     license: null
@@ -3763,6 +3928,8 @@ skills:
     layer: "L9"
     install: "npm -g"
     vendor: "vendor/security-alliance/verifiable-phishing-reporter"
+    status: "referenz"
+    status_reason: "kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo"
     fetched: true
     branch: "main"
     license: null
@@ -3802,6 +3969,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/ethereum/go-ethereum"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "master"
     license: "LGPL-3.0"
@@ -3842,6 +4011,8 @@ skills:
     layer: "L7"
     install: "uv tool"
     vendor: "vendor/flashbots/mev-inspect-py"
+    status: "binary"
+    status_reason: "`inspect-block` im PATH"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -3881,6 +4052,8 @@ skills:
     layer: "L7"
     install: "keine Installation"
     vendor: "vendor/flashbots/mev-research"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -3915,6 +4088,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/flashbots/pm"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -3946,6 +4121,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/flashbots/mev-boost"
+    status: "binary"
+    status_reason: "`mev-boost` im PATH"
     fetched: true
     branch: "develop"
     license: "MIT"
@@ -3986,6 +4163,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/flashbots/mev-boost-relay"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/flashbots/mev-boost-relay mit cargo/go noetig"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -4026,6 +4205,8 @@ skills:
     layer: "L7"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/flashbots/mev-geth"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "master"
     license: "LGPL-3.0"
@@ -4066,6 +4247,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/flashbots/rbuilder"
+    status: "binary"
+    status_reason: "`rbuilder` im PATH"
     fetched: true
     branch: "develop"
     license: "Apache-2.0"
@@ -4105,6 +4288,8 @@ skills:
     layer: "L7"
     install: "release-binary"
     vendor: "vendor/flashbots/rollup-boost"
+    status: "referenz"
+    status_reason: "kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/flashbots/rollup-boost mit cargo/go noetig"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -4145,6 +4330,8 @@ skills:
     layer: "L7"
     install: "keine Installation (archiviert, Wissen only)"
     vendor: "vendor/flashbots/suave-geth"
+    status: "referenz"
+    status_reason: "archiviert/ueberholt \u2014 Regeln nutzen, Tool nicht betreiben"
     fetched: true
     branch: "main"
     license: "LGPL-3.0"
@@ -4185,6 +4372,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/Kava-Labs/kava"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "master"
     license: "Apache-2.0"
@@ -4221,6 +4410,8 @@ skills:
     layer: "L7"
     install: "keine Installation"
     vendor: "vendor/0x4D31/honeypot-data"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: "CC-BY-4.0"
@@ -4256,6 +4447,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/code-423n4/2025-01-initia-move"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -4295,6 +4488,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/Zellic/publications"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: null
@@ -4327,6 +4522,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/initia-labs/movevm"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "NOASSERTION"
@@ -4365,6 +4562,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/FiloSottile/mostly-harmless"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -4395,6 +4594,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/php/php-src"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "master"
     license: "BSD-3-Clause"
@@ -4435,6 +4636,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/openai/math"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -4474,6 +4677,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/near/intents"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "MIT"
@@ -4514,6 +4719,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/slowmist/Knowledge-Base"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: null
@@ -4552,6 +4759,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/slowmist/Blockchain-dark-forest-selfguard-handbook"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -4591,6 +4800,8 @@ skills:
     layer: "L7"
     install: "keine Installation"
     vendor: "vendor/slowmist/Crypto-Asset-Tracing-Handbook"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -4629,6 +4840,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/slowmist/solana-smart-contract-security-best-practices"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -4668,6 +4881,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/slowmist/Cryptocurrency-Security-Audit-Guide"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -4707,6 +4922,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/slowmist/SlowMist-Learning-Roadmap-for-Becoming-a-Smart-Contract-Auditor"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -4746,6 +4963,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/ChainSafe/audits"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "main"
     license: null
@@ -4778,6 +4997,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/ChainSafe/lodestar"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "unstable"
     license: "Apache-2.0"
@@ -4818,6 +5039,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/ChainSafe/forest"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "main"
     license: "Apache-2.0"
@@ -4858,6 +5081,8 @@ skills:
     layer: "L7"
     install: "keine Installation (Quell-Referenz)"
     vendor: "vendor/ChainSafe/gossamer"
+    status: "quelle"
+    status_reason: "Quellbaum als Semantik-Referenz"
     fetched: true
     branch: "development"
     license: "LGPL-3.0"
@@ -4898,6 +5123,8 @@ skills:
     layer: "L6"
     install: "uv tool"
     vendor: "vendor/ChainSecurity/deployment_validation"
+    status: "referenz"
+    status_reason: "Rust/Cargo-Projekt ohne Prebuilt (vendor/ChainSecurity/deployment_validation); cargo build noetig"
     fetched: true
     branch: "main"
     license: "AGPL-3.0"
@@ -4937,6 +5164,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/ChainSecurity/dv-files"
+    status: "korpus"
+    status_reason: "Daten/Korpus, kein CLI"
     fetched: true
     branch: "main"
     license: null
@@ -4967,6 +5196,8 @@ skills:
     layer: "L8"
     install: "keine Installation"
     vendor: "vendor/ChainSecurity/audits"
+    status: "wissen"
+    status_reason: "Text und Regeln, kein Betrieb"
     fetched: true
     branch: "master"
     license: null
