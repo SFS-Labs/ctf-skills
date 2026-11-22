@@ -13,7 +13,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-KEYS = ("git", "docker", "docker_compose", "forge", "anvil", "slither", "mythril", "manticore", "ida", "oz_foundry_upgrades", "v8_skill", "freebuff_trace")
+KEYS = ("git", "docker", "docker_compose", "forge", "anvil", "slither", "mythril", "manticore", "ida", "oz_foundry_upgrades", "v8_skill", "project_v8_skill", "freebuff_trace")
 
 
 def cmd_result(cmd, args=("--version",), timeout=5):
@@ -64,6 +64,24 @@ def inspection(project, skills_root, bundled_git):
                            "path": str(skill)}
     else:
         out["v8_skill"] = {"status": "MISSING", "path": str(skill)}
+    active_skill = project / ".agents/skills/ctf-skill-index-v8/SKILL.md"
+    if active_skill.is_file():
+        try:
+            frontmatter = active_skill.read_text(encoding="utf-8").splitlines()[:5]
+            valid_active = "name: ctf-skill-index-v8" in frontmatter
+        except OSError:
+            valid_active = False
+        out["project_v8_skill"] = {
+            "status": "PRESENT_RUNTIME_UNVERIFIED" if valid_active else "INVALID_FRONTMATTER",
+            "path": str(active_skill),
+            "detail": "File presence cannot prove discovery at session start or a native skill call",
+        }
+    else:
+        out["project_v8_skill"] = {
+            "status": "MISSING_IN_ACTIVE_PROJECT",
+            "path": str(active_skill),
+            "detail": "V8 in ~/ctf-skills does not automatically load in another Freebuff project",
+        }
     out["freebuff_trace"] = {"status": "UNVERIFIED", "path": None,
                               "detail": "CLI environment check cannot prove a Freebuff skill tool call"}
     return out
