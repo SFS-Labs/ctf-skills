@@ -29,7 +29,7 @@ Treffer sind Ähnlichkeit, kein Beweis.
 - Datenmenge ohne Semantik: Muster erkennen, nicht blind uebernehmen.
 - findet nur, wofuer jemand eine Invariante formuliert hat.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `echidna`, `medusa`, `scribble`, `diligence-fuzzing`, `mythril`, `manticore`.
 Nach diesem Skill weiter mit Layer L4.
 

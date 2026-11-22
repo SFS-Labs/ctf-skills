@@ -29,7 +29,7 @@ Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestäti
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - findet nur, wofuer jemand eine Invariante formuliert hat.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `echidna`, `medusa`, `properties`, `diligence-fuzzing`, `mythril`, `manticore`.
 Nach diesem Skill weiter mit Layer L4.
 

@@ -29,7 +29,7 @@ Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte I
 - schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.
 - sagt nichts ueber Code-Korrektheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `cryo`, `mev-inspect-py`, `transaction-decoder`, `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`.
 Nach diesem Skill weiter mit Layer L8.
 

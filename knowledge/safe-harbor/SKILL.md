@@ -29,7 +29,7 @@ Text ist Muster, keine Messung: auf das Ziel abbilden und gegen Code prüfen.
 - kein ausfuehrbares Artefakt; Wissen muss aktiv auf das Ziel abgebildet werden.
 - sagt nichts ueber Code.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `seal-frameworks`, `drill-template`, `crytic-compile`, `solc-select`, `surya`, `solar`.
 Nach diesem Skill weiter mit Layer L1.
 
