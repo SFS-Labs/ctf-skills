@@ -30,6 +30,28 @@ class PreflightTests(unittest.TestCase):
             _, report = self.invoke("--skills-root", tmp)
             self.assertEqual(report["checks"]["v8_skill"]["status"], "MISSING")
 
+    def test_skill_in_tool_repo_does_not_imply_skill_in_active_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "challenge"
+            project.mkdir()
+            _, report = self.invoke("--project", str(project), "--skills-root", str(ROOT))
+            self.assertEqual(report["checks"]["project_v8_skill"]["status"],
+                             "MISSING_IN_ACTIVE_PROJECT")
+            self.assertEqual(report["checks"]["v8_skill"]["status"],
+                             "PRESENT_RUNTIME_UNVERIFIED")
+            self.assertEqual(report["checks"]["freebuff_trace"]["status"], "UNVERIFIED")
+
+    def test_active_project_skill_is_still_not_runtime_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "challenge"
+            skill = project / ".agents/skills/ctf-skill-index-v8/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("---\\nname: ctf-skill-index-v8\\n---\\n", encoding="utf-8")
+            _, report = self.invoke("--project", str(project), "--skills-root", str(ROOT))
+            self.assertEqual(report["checks"]["project_v8_skill"]["status"],
+                             "PRESENT_RUNTIME_UNVERIFIED")
+            self.assertEqual(report["checks"]["freebuff_trace"]["status"], "UNVERIFIED")
+
     def test_project_dependency_absent(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, report = self.invoke("--project", tmp)
