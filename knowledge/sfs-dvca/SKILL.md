@@ -13,6 +13,8 @@ pairs_with: [echidna, medusa, properties, scribble, diligence-fuzzing, mythril, 
 
 **Repo:** `SFS-Labs/DamnVulnerableCryptoApp` · **Layer:** L3 · **Klasse:** JS · **Bezogen:** ja (branch `master`, Lizenz MIT)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo
+
 ## Zweck
 Web3-Angriffsuebungen: Wallet/Key-Handling, Client-Flows.
 
@@ -20,16 +22,16 @@ Web3-Angriffsuebungen: Wallet/Key-Handling, Client-Flows.
 wenn eine Annahme pruefbar wird: Invariante formulieren und brechen lassen.
 
 ## Kommando
-`sfs-dvca --help` (npm global)
+kein Kommando — kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo; Quelle: `vendor/SFS-Labs/DamnVulnerableCryptoApp`
 
 ## Deutung der Ausgabe
-Graph/Report als Landkarte; Aussagen über Laufzeitverhalten sind daraus nicht ableitbar.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - JS-Werkzeuge sehen nur, was sie parsen; Build-/Deploy-Kontext fehlt oft.
 - findet nur, wofuer jemand eine Invariante formuliert hat.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `echidna`, `medusa`, `properties`, `scribble`, `diligence-fuzzing`, `mythril`, `manticore`.
 Nach diesem Skill weiter mit Layer L4.
 
