@@ -1,0 +1,12 @@
+{
+  "source_repo": "SFS-Labs/sfs-ai-development-gateway",
+  "path": "docs/COPILOT_PROFICIENCY_OPERATING_STANDARD.md",
+  "ref": "main",
+  "blob_sha": "277ad8a4d45043b2fc6c9b463aa0d989596e976e",
+  "retrieved_at": "2026-11-22T01:16:49Z",
+  "retrieved_via": "connected GitHub app (SFS-Labs account)",
+  "pat_api_status": 404,
+  "content_sha256": "b8d05485661c3dd3e349939096846b18e698fa12dec9d35321769a2b336c8b2c",
+  "bytes": 13047,
+  "note": "Verbatim copy of the remote standard. The fine-grained PAT used by bin/copilot-delegate cannot read the private repository; the connected GitHub app can. No signed URL is stored."
+}

@@ -1,0 +1,364 @@
+#!/usr/bin/env python3
+"""token — GitHub-Token unsichtbar einlesen, pruefen und ablegen.
+
+Warum dieses Skript existiert:
+  Der Token darf nicht als Argument in der Kommandozeile stehen (waere in `ps` und
+  in der Shell-History) und auch nicht in der Ausgabe auftauchen. Auf einem Handy
+  ist ausserdem der mehrzeilige `read -rs TOK && printf ... && chmod ...`-Block
+  unbrauchbar: klebt man ihn als Block ein, frisst `read` die naechste Zeile als
+  Token und der Rest laeuft als Befehl.
+
+  Deshalb hier: ein Wort tippen, Token an der unsichtbaren Eingabe einfuegen,
+  Enter. Danach wird die Datei mit Modus 0600 geschrieben und — sofern nicht
+  abgeschaltet — per GitHub-API geprueft, ob der Token gueltig ist und ob
+  SFS-Labs/ctf-skill-factory erreichbar ist.
+
+Regeln (bewusst so):
+  * Kein Token in argv: es gibt kein --token. Eingabe nur interaktiv oder stdin.
+  * Nichts wird gespiegelt: die Eingabe laeuft mit abgeschaltetem ECHO.
+  * Die Datei ist die einzige Ablage (~/.config/gh-token, 0600); `bin/push` liest
+    sie nicht, sondern weiterhin nur GH_TOKEN/GITHUB_TOKEN aus der Umgebung.
+  * Gespeichert wird genau ein Token. Bracketed-Paste-Marker (ESC[200~/ESC[201~)
+    und andere ANSI-Sequenzen werden vor der Pruefung entfernt; restliche
+    Steuerzeichen oder Leerraum gelten als kaputte Eingabe.
+  * Das Format wird vor dem Speichern strikt geprueft. Ein unbekanntes Format
+    wird abgelehnt und nicht als Erfolg gemeldet.
+  * Ausgegeben werden nur Format, Laenge und ein SHA-256-Praefix — nie Zeichen
+    des Tokens, nie der Authorization-Header.
+
+Aufrufe:
+  bin/token                 # Token einfuegen, speichern, direkt pruefen
+  bin/token --no-verify     # nur speichern (offline)
+  bin/token --check         # gespeicherten Token pruefen, nichts aendern
+  bin/token --show          # Format/Laenge/Hash zeigen, nichts aendern
+  bin/token --repair        # Paste-Marker aus alter Datei entfernen
+  bin/token < datei.txt     # aus einer Datei (Alternative, wenn Einfuegen klemmt)
+
+Exit: 0 ok · 2 Eingabe/Aufruf unbrauchbar · 3 Auth fehlgeschlagen
+      4 Repo-Zugriff fehlgeschlagen
+"""
+import argparse
+import hashlib
+import json
+import os
+import re
+import sys
+import tempfile
+import termios
+import time
+import urllib.error
+import urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+TARGET = os.path.expanduser("~/.config/gh-token")
+REPO = "SFS-Labs/ctf-skill-factory"
+API = "https://api.github.com"
+
+# Exakte Laengen der aktuell von GitHub ausgegebenen Token.
+# fine-grained: github_pat_ + 82 = 93 Zeichen; die uebrigen: Praefix + 36 = 40.
+FORMATS = [
+    (re.compile(r"github_pat_[A-Za-z0-9_]{82}"), "fine-grained"),
+    (re.compile(r"ghp_[A-Za-z0-9]{36}"), "classic"),
+    (re.compile(r"gho_[A-Za-z0-9]{36}"), "oauth"),
+    (re.compile(r"ghu_[A-Za-z0-9]{36}"), "user-to-server"),
+    (re.compile(r"ghs_[A-Za-z0-9]{36}"), "server-to-server"),
+    (re.compile(r"ghr_[A-Za-z0-9]{36}"), "refresh"),
+]
+
+# Manche Terminals liefern die Marker mit ESC, manche ohne; beides entfernen.
+BRACKET_PASTE = re.compile(r"(?:\x1b)?\[20[01]~")
+# Sonstige ANSI-CSI-/Zwei-Zeichen-Sequenzen (z. B. Farbcodes).
+ANSI_CSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-_]")
+
+
+def read_hidden(prompt):
+    """Liest eine Zeile mit abgeschaltetem ECHO. Faellt bei stdin-Pipe auf readline zurueck."""
+    sys.stderr.write(prompt)
+    sys.stderr.flush()
+    fd = sys.stdin.fileno()
+    saved = None
+    if sys.stdin.isatty():
+        try:
+            saved = termios.tcgetattr(fd)
+            quiet = list(saved)
+            quiet[3] &= ~termios.ECHO  # keine Rueckanzeige der Eingabe
+            termios.tcsetattr(fd, termios.TCSADRAIN, quiet)
+        except termios.error:
+            saved = None
+    try:
+        line = sys.stdin.readline()
+    finally:
+        if saved is not None:
+            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+            sys.stderr.write("\n")
+            sys.stderr.flush()
+    return line
+
+
+def sanitize(raw):
+    """Entfernt Paste-Marker/ANSI-Sequenzen und liefert (token, marker, restfehler).
+
+    `restfehler` enthaelt alles, was nach dem Entfernen der Marker noch
+    Steuerzeichen oder Leerraum ist. Ein Token besteht ausschliesslich aus
+    [A-Za-z0-9_]; solche Reste sind deshalb ein Eingabefehler und werden nicht
+    stillschweigend verschluckt.
+    """
+    s = raw
+    if s.endswith("\n"):
+        s = s[:-1]
+    if s.endswith("\r"):
+        s = s[:-1]
+    markers = len(BRACKET_PASTE.findall(s))
+    s = BRACKET_PASTE.sub("", s)
+    s = ANSI_CSI.sub("", s)
+    s = s.strip()
+    bad = [c for c in s if c.isspace() or not c.isprintable()]
+    token = "".join(c for c in s if c.isprintable() and not c.isspace())
+    return token, markers, bad
+
+
+def classify(tok):
+    """Nur exakt bekannte Formate gelten als gueltig; sonst leerer String."""
+    for rx, name in FORMATS:
+        if rx.fullmatch(tok):
+            return name
+    return ""
+
+
+def complain(msg, hint=""):
+    print("FEHLER: %s" % msg)
+    if hint:
+        print(hint)
+    return 2
+
+
+def store(tok):
+    directory = os.path.dirname(TARGET)
+    os.makedirs(directory, mode=0o700, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".gh-token.")
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(tok + "\n")
+        os.replace(tmp, TARGET)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def load_raw():
+    if not os.path.exists(TARGET):
+        return ""
+    # errors="replace": eine kaputte Datei darf keine Traceback mit Inhalt ausloesen.
+    with open(TARGET, "r", encoding="utf-8", errors="replace") as fh:
+        return fh.read()
+
+
+def load():
+    raw = load_raw()
+    token, markers, bad = sanitize(raw)
+    return token, markers, bad, raw
+
+
+def mask(tok):
+    """Nur Format, Laenge und ein nicht umkehrbarer Hash-Praefix — keine Token-Zeichen."""
+    kind = classify(tok) or "unbekanntes Format"
+    digest = hashlib.sha256(tok.encode("utf-8")).hexdigest()[:8]
+    return "%s, %d Zeichen, sha256:%s" % (kind, len(tok), digest)
+
+
+def show():
+    tok, markers, bad, raw = load()
+    if not raw:
+        print("kein Token hinterlegt (%s fehlt)" % TARGET)
+        return 0
+    st = os.stat(TARGET)
+    print("Datei : %s (%s)" % (TARGET, oct(st.st_mode & 0o777)))
+    print("Token : %s" % mask(tok))
+    print("Stand : %s" % time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime)))
+    if markers or bad:
+        print("Hinweis: Datei enthaelt Steuerzeichen/Bracketed-Paste-Marker; "
+              "`ctf-token --repair` bereinigt sie.")
+    elif raw != tok + "\n":
+        print("Hinweis: Datei hat kein abschliessendes Zeilenende; "
+              "`ctf-token --repair` normalisiert sie.")
+    return 0
+
+
+def repair():
+    tok, markers, bad, raw = load()
+    if not raw:
+        print("kein Token hinterlegt (%s fehlt) — nichts zu reparieren." % TARGET)
+        return 0
+    kind = classify(tok)
+    if not kind:
+        return complain(
+            "der gespeicherte Wert ist auch nach dem Bereinigen kein gueltiges Tokenformat.",
+            "Nichts geaendert. Bitte den Token mit `ctf-token` neu und verdeckt eingeben.")
+    if raw == tok + "\n":
+        print("nichts zu reparieren: Datei ist bereits sauber (%s)." % mask(tok))
+        return 0
+    store(tok)
+    os.chmod(TARGET, 0o600)
+    print("repariert: %d Paste-Marker/Steuerzeichen entfernt -> %s" % (markers, mask(tok)))
+    return 0
+
+
+def api_get(path, tok):
+    """Read-only-API-Aufruf. Der Token steht nur im Header, nie in der URL/argv."""
+    req = urllib.request.Request(API + path, headers={
+        "Authorization": "Bearer %s" % tok,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "ctf-skills-token",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read()
+            return resp.status, resp.headers, json.loads(body or b"{}")
+    except urllib.error.HTTPError as exc:
+        body = exc.read()
+        try:
+            data = json.loads(body or b"{}")
+        except ValueError:
+            data = {}
+        return exc.code, exc.headers, data
+
+
+def verify(tok):
+    """Prueft Authentifizierung und Repo-Zugriff getrennt; gibt nur Statuscodes aus."""
+    print("Pruefung: api.github.com (read-only)", flush=True)
+    try:
+        status, headers, data = api_get("/user", tok)
+    except (urllib.error.URLError, OSError) as exc:
+        print("Auth   : Netzwerkfehler — %s" % exc)
+        return 3
+
+    if status == 200:
+        login = data.get("login")
+        print("Auth   : HTTP 200 — Token gueltig%s" %
+              ((" (login: %s)" % login) if login else ""))
+    elif status == 401:
+        print("Auth   : HTTP 401 — Token ungueltig, abgelaufen oder widerrufen")
+        print("Repo   : nicht geprueft (Authentifizierung fehlgeschlagen)")
+        return 3
+    else:
+        print("Auth   : HTTP %d — %s" % (status, data.get("message", "unerwartete Antwort")))
+        return 3
+
+    try:
+        status, headers, data = api_get("/repos/%s" % REPO, tok)
+    except (urllib.error.URLError, OSError) as exc:
+        print("Repo   : Netzwerkfehler — %s" % exc)
+        return 4
+
+    if status == 200:
+        perms = data.get("permissions") or {}
+        print("Repo   : HTTP 200 — %s (private=%s, default_branch=%s, push=%s)" % (
+            REPO, data.get("private"), data.get("default_branch"), perms.get("push")))
+        if not perms.get("push"):
+            print("Hinweis: Lesezugriff bestaetigt; Schreibrecht laut Token nicht erteilt.")
+        return 0
+    if status == 403:
+        msg = data.get("message", "forbidden")
+        if headers.get("x-ratelimit-remaining") == "0":
+            msg += " (Rate-Limit erschoepft)"
+        print("Repo   : HTTP 403 — Zugriff verweigert: %s" % msg)
+        return 4
+    if status == 404:
+        print("Repo   : HTTP 404 — Repository nicht gefunden ODER Token hat keinen "
+              "Zugriff (GitHub maskiert beides).")
+        return 4
+    print("Repo   : HTTP %d — %s" % (status, data.get("message", "unerwartete Antwort")))
+    return 4
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="GitHub-Token unsichtbar einlesen und nach %s legen." % TARGET)
+    ap.add_argument("--show", action="store_true", help="nur Format/Laenge/Hash anzeigen, nichts aendern")
+    ap.add_argument("--check", action="store_true", help="gespeicherten Token pruefen, nichts aendern")
+    ap.add_argument("--repair", action="store_true", help="Paste-Marker aus der Datei entfernen")
+    ap.add_argument("--no-verify", action="store_true", help="nach dem Speichern nicht pruefen")
+    args = ap.parse_args()
+
+    if args.show:
+        return show()
+    if args.repair:
+        return repair()
+    if args.check:
+        tok, markers, bad, raw = load()
+        if not raw:
+            return complain("kein Token hinterlegt (%s fehlt)." % TARGET)
+        kind = classify(tok)
+        if not kind:
+            return complain(
+                "gespeicherter Wert ist kein gueltiges Tokenformat%s." % (
+                    " (Paste-Marker in der Datei; `ctf-token --repair`)" if markers else ""))
+        return verify(tok)
+
+    interactive = sys.stdin.isatty()
+    raw = read_hidden("Token einfuegen (unsichtbar), dann Enter: " if interactive
+                      else "Token aus stdin: ")
+    tok, markers, bad = sanitize(raw)
+
+    if markers:
+        print("Hinweis: %d Bracketed-Paste-Marker entfernt." % markers)
+    if bad:
+        return complain(
+            "die Eingabe enthaelt nach dem Entfernen der Paste-Marker noch "
+            "Steuerzeichen oder Leerraum — nichts gespeichert.",
+            "Bitte nur den Token-Wert (eine Zeile) einfuegen.")
+    if not tok:
+        return complain("leere Eingabe — nichts geaendert.")
+    if re.search(r"&&|\|\||\$\(|^read\b|^printf\b|^export\b", tok):
+        return complain(
+            "die Eingabe sieht wie ein Befehl aus, nicht wie ein Token.",
+            "Ctrl-C druecken und danach nur den Token-Wert einfuegen.")
+    kind = classify(tok)
+    if not kind:
+        return complain(
+            "Format nicht erkannt (%d Zeichen) — nichts gespeichert." % len(tok),
+            "Erwartet: github_pat_… (93 Zeichen) oder ghp_… (40 Zeichen).")
+
+    previous, p_markers, p_bad, p_raw = load()
+    if p_raw and (p_markers or p_bad or p_raw != previous + "\n"):
+        if classify(previous):
+            store(previous)
+            os.chmod(TARGET, 0o600)
+            print("alter Eintrag bereinigt: %d Paste-Marker/Steuerzeichen entfernt."
+                  % p_markers)
+        else:
+            print("Warnung: alter Eintrag war unbrauchbar und wird ersetzt.")
+
+    old = ""
+    if previous:
+        if previous == tok:
+            print("unveraendert: dieser Token ist bereits hinterlegt (%s)" % mask(tok))
+            if args.no_verify:
+                return 0
+            return verify(tok)
+        old = mask(previous)
+
+    store(tok)
+    os.chmod(TARGET, 0o600)
+    print("gespeichert: %s -> %s" % (TARGET, mask(tok)))
+    if old:
+        print("vorher    : %s" % old)
+
+    if args.no_verify:
+        print("Pruefung uebersprungen (--no-verify).")
+        return 0
+
+    rc = verify(tok)
+    if rc != 0:
+        print("Pruefung meldet Exit %d — Token gespeichert, aber nicht bestaetigt." % rc)
+        return rc
+    print("Naechster Schritt: export GH_TOKEN=$(cat %s)" % TARGET)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

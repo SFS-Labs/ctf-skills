@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "checked_at": "2026-11-22T01:19:16Z",
+  "simulated": false,
+  "repo": "SFS-Labs/ctf-skill-factory",
+  "login": "SFS-Labs",
+  "token_source": "configured, value never read into this artifact",
+  "checks": [
+    {
+      "name": "auth",
+      "ok": true,
+      "http": 200,
+      "detail": "login=SFS-Labs"
+    },
+    {
+      "name": "rate_limit",
+      "ok": true,
+      "http": 200,
+      "detail": "read-only"
+    },
+    {
+      "name": "repository",
+      "ok": true,
+      "http": 200,
+      "detail": "private=True issues=False"
+    },
+    {
+      "name": "copilot_actor",
+      "ok": true,
+      "http": 200,
+      "detail": "copilot-swe-agent"
+    },
+    {
+      "name": "issues_api",
+      "ok": false,
+      "http": 403,
+      "detail": "GitHub API 403: Resource not accessible by personal access token"
+    },
+    {
+      "name": "agent_tasks_user",
+      "ok": true,
+      "http": 200,
+      "detail": "read"
+    },
+    {
+      "name": "agent_tasks_repo",
+      "ok": false,
+      "http": 403,
+      "detail": "GitHub API 403: forbidden: user does not have read access to the repository"
+    }
+  ],
+  "repository": {
+    "default_branch": "main",
+    "private": true,
+    "has_issues": false,
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  "copilot": {
+    "bot_login": "copilot-swe-agent",
+    "bot_id": "BOT_kgDOC9w8XQ",
+    "offered": true,
+    "agent_tasks_user_read": true,
+    "agent_tasks_repo_read": false
+  },
+  "routes": {
+    "issue": {
+      "available": false,
+      "reasons": [
+        "repository has issues disabled",
+        "issues API status 403"
+      ],
+      "endpoints": [
+        "POST /repos/SFS-Labs/ctf-skill-factory/issues",
+        "GraphQL replaceActorsForAssignable"
+      ]
+    },
+    "agent-task": {
+      "available": false,
+      "reasons": [
+        "agent tasks repo status 403"
+      ],
+      "endpoints": [
+        "POST /agents/repos/SFS-Labs/ctf-skill-factory/tasks"
+      ]
+    }
+  },
+  "policy": {
+    "version": 1,
+    "paid_delegation_allowed": false,
+    "credits_exhausted": true,
+    "auto_merge": false,
+    "max_tasks_per_run": 1,
+    "allow_issue_creation": true,
+    "updated_at": null,
+    "notes": "Copilot agent credits are exhausted. Paid delegation stays closed until the user restores quota and explicitly opens the gate."
+  },
+  "paid_gate": {
+    "open": false,
+    "paid_delegation_allowed": false,
+    "credits_exhausted": true,
+    "requires_flag": "--allow-paid"
+  },
+  "standard": {
+    "source": "local-vendored",
+    "remote_status": 404,
+    "sha256": "b8d05485661c3dd3e349939096846b18e698fa12dec9d35321769a2b336c8b2c",
+    "path": "docs/COPILOT_PROFICIENCY_OPERATING_STANDARD.md",
+    "origin": {
+      "source_repo": "SFS-Labs/sfs-ai-development-gateway",
+      "path": "docs/COPILOT_PROFICIENCY_OPERATING_STANDARD.md",
+      "ref": "main",
+      "blob_sha": "277ad8a4d45043b2fc6c9b463aa0d989596e976e",
+      "retrieved_at": "2026-11-22T01:16:49Z",
+      "retrieved_via": "connected GitHub app (SFS-Labs account)",
+      "pat_api_status": 404,
+      "bytes": 13047
+    },
+    "domains": [
+      "ai-collaboration",
+      "prompting",
+      "code-generation-validation",
+      "agent-configuration",
+      "tool-context-integration"
+    ]
+  },
+  "ready_for_free_checks": true,
+  "ready_to_delegate": false,
+  "blockers": [
+    "PAT cannot read SFS-Labs/sfs-ai-development-gateway (404); vendored standard sha=b8d05485661c in use",
+    "issue route: repository has issues disabled; issues API status 403",
+    "agent-task route: agent tasks repo status 403",
+    "copilot credits marked exhausted in policy",
+    "paid delegation gate closed in policy"
+  ],
+  "artifact_note": "Sanitized read-only preflight. No token, no write request. Recorded 2026-11-22; permissions and quota can change."
+}
