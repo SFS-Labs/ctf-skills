@@ -13,6 +13,8 @@ pairs_with: [diffusc, oz-upgrades, chainsecurity-deployment-validation, cryo, me
 
 **Repo:** `ConsenSysDiligence/bytecode-verifier` · **Layer:** L6 · **Klasse:** RS · **Bezogen:** ja (branch `master`, Lizenz None)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** Repo-API 404 (Quelle nicht mehr oeffentlich); Quellbaum liegt in vendor/ConsenSysDiligence/bytecode-verifier
+
 ## Zweck
 Bytecode-/Upgrade-Verifikation.
 
@@ -20,16 +22,16 @@ Bytecode-/Upgrade-Verifikation.
 wenn sich Code/Parameter geaendert haben (Upgrade, Deployment, Fork).
 
 ## Kommando
-`bytecode-verifier --help` (Release-Binary in ~/.local/bin, falls vorhanden)
+kein Kommando — Repo-API 404 (Quelle nicht mehr oeffentlich); Quellbaum liegt in vendor/ConsenSysDiligence/bytecode-verifier; Quelle: `vendor/ConsenSysDiligence/bytecode-verifier`
 
 ## Deutung der Ausgabe
-Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte Invariante.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.
 - findet keine Altlasten, die schon immer da waren.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `diffusc`, `oz-upgrades`, `chainsecurity-deployment-validation`, `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`.
 Nach diesem Skill weiter mit Layer L7.
 

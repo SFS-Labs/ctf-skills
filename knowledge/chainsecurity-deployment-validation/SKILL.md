@@ -13,6 +13,8 @@ pairs_with: [diffusc, oz-upgrades, bytecode-verifier, cryo, mev-inspect-py, tran
 
 **Repo:** `ChainSecurity/deployment_validation` · **Layer:** L6 · **Klasse:** PY · **Bezogen:** ja (branch `main`, Lizenz AGPL-3.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** Rust/Cargo-Projekt ohne Prebuilt (vendor/ChainSecurity/deployment_validation); cargo build noetig
+
 ## Zweck
 Deploy-Parameter-Verifikation.
 
@@ -20,16 +22,16 @@ Deploy-Parameter-Verifikation.
 wenn sich Code/Parameter geaendert haben (Upgrade, Deployment, Fork).
 
 ## Kommando
-`chainsecurity-deployment-validation` (via `uv tool`); Hilfe: `chainsecurity-deployment-validation --help`
+kein Kommando — Rust/Cargo-Projekt ohne Prebuilt (vendor/ChainSecurity/deployment_validation); cargo build noetig; Quelle: `vendor/ChainSecurity/deployment_validation`
 
 ## Deutung der Ausgabe
-Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestätigt wird über L3 (Counterexample) oder L4 (Pfad).
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - findet keine Altlasten, die schon immer da waren.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `diffusc`, `oz-upgrades`, `bytecode-verifier`, `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`.
 Nach diesem Skill weiter mit Layer L7.
 

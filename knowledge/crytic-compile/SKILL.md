@@ -29,7 +29,7 @@ Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestäti
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - kennt die Absicht des Autors nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `solc-select`, `surya`, `solar`, `slither`, `surya`, `bytecode-verifier`, `slither-mcp`.
 Nach diesem Skill weiter mit Layer L2.
 
