@@ -4,18 +4,29 @@ Scope: only the **local, authorized** EVM challenge environment. This is a provi
 
 ## Baseline and non-destructive first check
 
-The screenshot describes a previous session on the target Mac mini; this GitHub runner is not that host. No item is considered repaired until a fresh probe on the Mac mini establishes it. Run within the **local Code/Codex session**, not in a remote GitHub Actions runner:
+The screenshot describes a previous session on the target Mac mini; this GitHub runner is not that host. All original RUN-A/RUN-B freezes and manifests must remain read-only. A new project-local skill changes the environment of a future test and cannot retrospectively prove original blind conditions. No item is considered repaired until a fresh probe on the Mac mini establishes it. Run within the **local Code/Codex session**, not in a remote GitHub Actions runner:
 
 ```bash
-cd ~/ctf-skills
+# Execute in the separately checked-out PR #4 worktree.
+# Do not change ~/ctf-skills' historical active checkout.
+PR_WORKTREE="$HOME/sfs-cyber-ctf-pr4"
+PRIVATE_EVIDENCE="$HOME/sfs-cyber-review-evidence-20261122"
+umask 077
+mkdir -p "$PRIVATE_EVIDENCE"
+cd "$PR_WORKTREE"
 python3 bin/security-toolchain-preflight.py \
-  --project ~/sfs-cyber-blind-eval \
-  --skills-root ~/ctf-skills \
-  --out ~/sfs-cyber-blind-eval/toolchain-preflight.json
-bash scripts/security-toolchain-repair.sh check
+  --project "$HOME/sfs-cyber-blind-eval" \
+  --skills-root "$PR_WORKTREE" \
+  --out "$PRIVATE_EVIDENCE/toolchain-preflight.json"
 ```
 
-Keep `toolchain-preflight.json` **local**, outside Git: it includes local paths and machine information. Avoid storing benchmark answers in the same output folder.
+The PRECHECK must come from the **same reviewed PR worktree** as the new
+installer and source V8 skill. Verify that checkout's commit SHA and
+`git status` before execution. If `PR_WORKTREE` is unavailable, stop
+and fetch the actual branch using the existing Git binary; never silently
+fall back to an outdated `~/ctf-skills` checkout. Keep the report
+private, outside the challenge project and Git, because it contains
+local paths and environment metadata.
 
 ## Controlled repairs (one at a time; preserve all existing artifacts)
 
@@ -36,11 +47,11 @@ establish skill discoverability in the actual project
 makes a new-session skill file available when absent:
 
 ```bash
-cd ~/ctf-skills  # or the approved PR worktree
-python3 bin/install-project-v8.py --project ~/sfs-cyber-blind-eval \
-  --skills-root ~/ctf-skills             # DRY RUN, no write
-python3 bin/install-project-v8.py --project ~/sfs-cyber-blind-eval \
-  --skills-root ~/ctf-skills --apply     # only after freeze, for a NEW session
+cd "$PR_WORKTREE"
+python3 bin/install-project-v8.py --project "$HOME/sfs-cyber-blind-eval" \
+  --skills-root "$PR_WORKTREE"             # DRY RUN, no write
+python3 bin/install-project-v8.py --project "$HOME/sfs-cyber-blind-eval" \
+  --skills-root "$PR_WORKTREE" --apply     # after freeze, for a NEW session
 ```
 
 This **changes future project discovery only**, never the historical blind-run.
