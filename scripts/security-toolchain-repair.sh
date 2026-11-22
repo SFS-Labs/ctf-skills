@@ -2,7 +2,7 @@
 # Narrow, idempotent local repair. No changes by default; no challenge execution.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-usage() { printf 'Usage: %s check | git | docker\n  check = read-only\n  git = user-local symlink if missing\n  docker = install official Docker Engine for Ubuntu 24.04 after local preflight\n' "$0"; }
+usage() { printf 'Usage: %s check | git | docker\n  check = read-only\n  git = user-local symlink if missing\n  docker = dry-run by default; --apply requires clean firewall prerequisite and explicit need\n' "$0"; }
 case "${1:-check}" in
 check)
   python3 "$ROOT/bin/security-toolchain-preflight.py" "${@:2}"
@@ -20,6 +20,11 @@ git)
   echo 'SYMLINK_READY: verify ~/.local/bin is in PATH of a NEW Freebuff tool process.'
   ;;
 docker)
+  if [[ "${2:-}" != "--apply" ]]; then
+    echo 'DRY RUN: Docker is not required for RUN-A/B. Installation intentionally deferred.'
+    echo 'Opt in only for a real container-specific task: docker --apply (after firewall review).'
+    exit 0
+  fi
   if ! command -v apt-get >/dev/null || ! command -v sudo >/dev/null; then
     echo 'BLOCKED: apt and sudo required' >&2; exit 2
   fi
@@ -40,6 +45,13 @@ docker)
   fi
   # Docker official Ubuntu repository. No unattended conflict removal or group privilege grant.
   sudo -v
+  # Docker modifies iptables/nft and may bypass UFW published-port policy.
+  # The existing SFS Linux Node uses UFW plus private nftables filters.
+  # Do not automate on that host until the concrete firewall interaction is audited.
+  if command -v ufw >/dev/null 2>&1 && sudo ufw status | grep -qi '^Status: active'; then
+    echo 'BLOCKED: UFW active. Review Docker/DOCKER-USER and current nftables rules before a manual install.' >&2
+    exit 2
+  fi
   sudo apt-get update
   sudo apt-get install -y ca-certificates curl
   sudo install -m 0755 -d /etc/apt/keyrings
