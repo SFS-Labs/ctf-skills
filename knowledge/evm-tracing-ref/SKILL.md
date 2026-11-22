@@ -29,7 +29,7 @@ Text ist Muster, keine Messung: auf das Ziel abbilden und gegen Code prüfen.
 - kein ausfuehrbares Artefakt; Wissen muss aktiv auf das Ziel abgebildet werden.
 - sagt nichts ueber Code-Korrektheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`, `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`.
 Nach diesem Skill weiter mit Layer L8.
 
