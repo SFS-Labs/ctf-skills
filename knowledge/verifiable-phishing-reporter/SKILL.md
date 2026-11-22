@@ -13,6 +13,8 @@ pairs_with: [seal-911, seal-frameworks, blockchain-security-contacts, slither, s
 
 **Repo:** `security-alliance/verifiable-phishing-reporter` · **Layer:** L9 · **Klasse:** JS · **Bezogen:** ja (branch `main`, Lizenz None)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo
+
 ## Zweck
 Meldeweg.
 
@@ -20,16 +22,16 @@ Meldeweg.
 sobald ein Fund existiert: beweisen, melden, eskalieren.
 
 ## Kommando
-`verifiable-phishing-reporter --help` (npm global)
+kein Kommando — kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo; Quelle: `vendor/security-alliance/verifiable-phishing-reporter`
 
 ## Deutung der Ausgabe
-Graph/Report als Landkarte; Aussagen über Laufzeitverhalten sind daraus nicht ableitbar.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - JS-Werkzeuge sehen nur, was sie parsen; Build-/Deploy-Kontext fehlt oft.
 - ist kein Analysewerkzeug.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `seal-911`, `seal-frameworks`, `blockchain-security-contacts`, `slither`, `surya`, `bytecode-verifier`, `slither-mcp`.
 Nach diesem Skill weiter mit Layer L2.
 

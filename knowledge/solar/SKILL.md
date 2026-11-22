@@ -29,7 +29,7 @@ Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte I
 - schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.
 - kennt die Absicht des Autors nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `crytic-compile`, `solc-select`, `surya`, `slither`, `surya`, `bytecode-verifier`, `slither-mcp`.
 Nach diesem Skill weiter mit Layer L2.
 

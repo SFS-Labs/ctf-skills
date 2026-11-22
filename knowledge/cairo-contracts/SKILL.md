@@ -29,7 +29,7 @@ Semantik-Nachschlagewerk: ‚was tut die EVM hier wirklich'.
 - kein fertiges Werkzeug; Referenz zum Nachschlagen von Semantik.
 - findet keine Altlasten, die schon immer da waren.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `diffusc`, `oz-upgrades`, `chainsecurity-deployment-validation`, `bytecode-verifier`, `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`.
 Nach diesem Skill weiter mit Layer L7.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""push — Stand ins private Repo sichern, ohne dass ein Token in der Ausgabe landet.
+"""push — kontrollierter GitHub-Push, ohne Token-Leaks oder unbeabsichtigte Public-Pushes.
 
 Warum dieses Skript existiert:
   dulwich schreibt beim Push die volle Remote-URL inklusive Token nach stderr —
@@ -18,7 +18,7 @@ Regeln dieses Wrappers (bewusst so):
 Aufrufe:
   bin/push --dry-run                      # zeigt den Plan, kein Netz, kein Push
   bin/push --check                        # read-only: Remote-HEAD vs. lokal
-  bin/push                                # pusht HEAD, prueft danach den Remote-SHA
+  bin/push --allow-public                 # fuer oeffentliche Repositories: explizite Freigabe
   bin/push -m "Nachricht" --add bin/push --add README.md
   bin/push --selftest                     # prueft den Redactor gegen synthetische Lecks
 
@@ -109,28 +109,53 @@ def api_visibility(repo, tok):
     return data.get("private"), data.get("default_branch")
 
 
-def local_head():
-    """HEAD ohne dulwich lesen — funktioniert mit jedem python3."""
-    head_file = os.path.join(ROOT, ".git", "HEAD")
+def git_dirs():
+    """Arbeitsbaum-Gitdir und gemeinsames Gitdir (linked worktree) ermitteln."""
+    dotgit = os.path.join(ROOT, ".git")
+    gd = dotgit
+    if os.path.isfile(dotgit):
+        try:
+            content = open(dotgit).read().strip()
+        except OSError:
+            content = ""
+        if content.startswith("gitdir: "):
+            gd = content[8:].strip()
+            if not os.path.isabs(gd):
+                gd = os.path.join(ROOT, gd)
+            gd = os.path.normpath(gd)
+    common = gd
     try:
-        head = open(head_file).read().strip()
+        rel = open(os.path.join(gd, "commondir")).read().strip()
+        common = os.path.normpath(os.path.join(gd, rel))
+    except OSError:
+        pass
+    return gd, common
+
+
+def local_head():
+    """HEAD ohne dulwich lesen — auch in einem linked worktree."""
+    gd, common = git_dirs()
+    try:
+        head = open(os.path.join(gd, "HEAD")).read().strip()
     except OSError:
         return ""
     if head.startswith("ref: "):
         ref = head[5:].strip()
-        try:
-            direct = open(os.path.join(ROOT, ".git", ref)).read().strip()
-            if re.fullmatch(r"[0-9a-f]{40}", direct):
-                return direct
-        except OSError:
-            pass
-        try:
-            packed = open(os.path.join(ROOT, ".git", "packed-refs")).read()
-        except OSError:
-            return ""
-        for line in packed.splitlines():
-            if line.endswith(" " + ref) and not line.startswith("#"):
-                return line.split()[0].strip()
+        for base in (gd, common):
+            try:
+                direct = open(os.path.join(base, ref)).read().strip()
+                if re.fullmatch(r"[0-9a-f]{40}", direct):
+                    return direct
+            except OSError:
+                pass
+        for base in (common, gd):
+            try:
+                packed = open(os.path.join(base, "packed-refs")).read()
+            except OSError:
+                continue
+            for line in packed.splitlines():
+                if line.endswith(" " + ref) and not line.startswith("#"):
+                    return line.split()[0].strip()
         return ""
     return head
 
@@ -337,7 +362,7 @@ def main(argv):
     ap.add_argument("-F", "--msg-file", default="", help="Commit-Nachricht aus Datei")
     ap.add_argument("--add", action="append", default=[], help="Pfad zum Stagen (mehrfach moeglich)")
     ap.add_argument("--repo", default=DEFAULT_REPO)
-    ap.add_argument("--allow-public", action="store_true", help="bewusstes Schreiben in ein oeffentliches Repo erlauben")
+    ap.add_argument("--allow-public", action="store_true", help="explizite Freigabe fuer Pushes in oeffentliche Repositories")
     ap.add_argument("--branch", default=DEFAULT_BRANCH)
     ap.add_argument("--ident", default=DEFAULT_IDENT)
     ap.add_argument("--_worker", action="store_true", help=argparse.SUPPRESS)
@@ -359,17 +384,19 @@ def main(argv):
     if not tok:
         die("keine Credentials: GH_TOKEN oder GITHUB_TOKEN setzen.\n"
             "  Beispiel: export GH_TOKEN=$(cat ~/.config/gh-token)   # Datei bleibt ausserhalb des Repos", 2, secrets)
+    try:
+        private, _ = api_visibility(args.repo, tok)
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError, ValueError) as exc:
+        die("Push gesperrt: Repository-Sichtbarkeit nicht verifizierbar (%s)" % type(exc).__name__, 2, secrets)
+    if private is not True and private is not False:
+        die("Push gesperrt: Repository-Sichtbarkeit unbekannt", 2, secrets)
+    if private is False and not args.allow_public:
+        die("Push in oeffentliches Repository gesperrt; nach Review explizit --allow-public angeben", 2, secrets)
     msg, err = commit_message(args)
     if err:
         die(err, 2, secrets)
     if msg and not args.add:
         die("--add fehlt: ohne Pfadliste wuerde ein leerer Commit entstehen", 2, secrets)
-    try:
-        is_private, _ = api_visibility(args.repo, tok)
-    except (urllib.error.HTTPError, urllib.error.URLError, OSError) as exc:
-        die("Repository-Sichtbarkeit vor Push nicht pruefbar: %s" % type(exc).__name__, 3, secrets)
-    if is_private is not True and not args.allow_public:
-        die("oeffentliches oder unbekanntes Repository: Push nur mit --allow-public", 2, secrets)
     rc, pushed = run_worker(args, secrets, msg)
     if rc != 0 or not pushed:
         out("ergebnis: Push fehlgeschlagen (exit %s)" % rc, secrets)

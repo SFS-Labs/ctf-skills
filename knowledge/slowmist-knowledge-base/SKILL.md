@@ -29,7 +29,7 @@ Text ist Muster, keine Messung: auf das Ziel abbilden und gegen Code prüfen.
 - kein ausfuehrbares Artefakt; Wissen muss aktiv auf das Ziel abgebildet werden.
 - Aktualitaet und projektspezifische Besonderheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `not-so-smart-contracts`, `smart-contract-best-practices`, `ethernaut`, `seal-911`, `seal-frameworks`, `blockchain-security-contacts`.
 Nach diesem Skill weiter mit Layer L9.
 

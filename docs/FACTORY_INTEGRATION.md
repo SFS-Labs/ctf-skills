@@ -24,6 +24,14 @@ The public `SFS-Labs/ctf-skills` repository is the canonical destination for con
 - **Existing CTF source:** original `ctf-*/` trees, `solve-challenge/`, upstream MIT copyright and test suite preserved.
 - **CI verified:** [PR workflow 44978080763](https://github.com/SFS-Labs/ctf-skills/actions/runs/44978080763) and [push workflow 44978077340](https://github.com/SFS-Labs/ctf-skills/actions/runs/44978077340) both succeeded. Combined pytest result: **77 passed, 1616 subtests passed**. The manifest/card/count check, executable permissions, shell syntax, offline router commands, and synthetic token-redaction selftest passed.
 - **Not executed:** large external vendor downloads, local cryptographic tool installations, native exploit scoring, and live exploit smoke tests; these depend on optional local tooling and external test inputs. Historical `STATUS.md` and `VERIFICATION.md` are inherited, not current CI results.
-- **Change record:** [PR #2](https://github.com/SFS-Labs/ctf-skills/pull/2). The original factory repository is retained as a readable historic source pending a separately verified GitHub repository archive action.
+- **Change record:** [PR #2](https://github.com/SFS-Labs/ctf-skills/pull/2). The original factory repository has been archived (GitHub repository metadata `archived=true`).
 
 GitHub connector edits and Actions results are **not** proof of GitHub Copilot product usage. Copilot proficiency evidence: **not verified**.
+
+## V8/V9 continuation after original merge
+
+The initial PR #2 migrated the pre-V7 catalog snapshot. The later [historical V9 PR #6](https://github.com/SFS-Labs/ctf-skill-factory/pull/6) in the archived source contains subsequent work not present in that snapshot. The continuation port uses source commit `d0bae5b6565a97711c60e2776afb5b1da397806f`, preserves the canonical CTF Agent Skills/attribution/license/workflows, and integrates the V8 Freebuff skill, V8 orchestrator, Copilot delegate, the V7 catalog alias verification and tests.
+
+The later catalog has **133 independently represented skills from 134 source records**: `NethermindEth/EVMYulLean` is a verified alias of `paradigmxyz/evmyullean`, not a second distinct skill. CI checks this invariant. The earlier 134-card snapshot is preserved in Git history. The additional alias card is retired only because its information is already represented within the canonical card and alias proof in `repos.tsv`.
+
+The historical Freebuff acceptance is an *external local-node report*, not proof that this CI runner invoked a Freebuff desktop skill. Copilot delegate's mock tests are not actual Copilot execution, and no paid delegation is enabled. The migrated `bin/push` retains an explicit `--allow-public` write gate.

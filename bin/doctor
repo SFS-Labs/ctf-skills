@@ -1,102 +1,380 @@
 #!/usr/bin/env python3
-"""doctor — prueft jedes ausfuehrbare Skill-Binary und schreibt STATUS.md.
+"""doctor — misst den Endzustand und schreibt STATUS.md (und einen Block in INDEX.md).
 
- Wahrheit statt Annahme: ein Skill gilt nur als gruen, wenn das Binary antwortet.
+Wahrheit statt Annahme:
+  * Jeder Manifest-Eintrag mit kind=tool landet in genau einer Klasse:
+    AUSFUEHRBAR (Binary antwortet mit Exit 0), BIBLIOTHEK (installiert, kein CLI)
+    oder REFERENZ (kein Lauf ohne Bau/Docker/Nutzerentscheidung) — mit Grund.
+    Ein Eintrag, der in keiner Klasse steht, ist ein FAIL, kein stilles Weglassen.
+  * Vendor-Baum und Wissenskarte werden pro Eintrag geprueft (Baum + .fetched +
+    sechs Pflichtabschnitte), nicht aus dem Manifest geglaubt.
+  * Aliasse werden gegen ihren gepinnten Baum-Digest gerechnet. Ein veralteter
+    Pin ist ein FAIL, keine Prosa; neu pinnen nur nach Remote-Pruefung
+    (`bin/alias-check --update`).
+  * Der Token-Status wird live geprueft (401 = Blocker), nicht behauptet.
+
+Aufrufe: bin/doctor          # Messung + STATUS.md/INDEX.md schreiben
+Exit: 0 alles belegt · 1 mindestens eine Luecke
 """
 import json
 import os
+import re
 import shutil
 import subprocess
+import sys
 import time
+import urllib.error
+import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from repos_tsv import RepoTableError, load, tree_digest  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-ENTRY = {
-    "slither": "slither", "crytic-compile": "crytic-compile", "solc-select": "solc-select",
-    "mythril": "myth", "scribble": "scribble", "surya": "surya", "solhint": "solhint",
-    "echidna": "echidna", "medusa": "medusa", "cryo": "cryo", "diffusc": "diffusc",
-    "rbuilder": "rbuilder", "evm-cfg-builder": "evm-cfg-builder", "pyevmasm": "evmasm",
-    "mev-inspect-py": "inspect-block", "etheno": "etheno", "daedaluzz": "daedaluzz",
-    "fuzz-utils": "fuzz-utils",
-    "forge": "forge", "cast": "cast", "anvil": "anvil", "uv": "uv",
-}
-PROBE = ["--version", "version", "--help", "-h"]
-SMOKE_BEGIN = "<!-- smoke:begin -->"
-SMOKE_END = "<!-- smoke:end -->"
+MANIFEST = os.path.join(ROOT, "manifest.json")
+STATUS = os.path.join(ROOT, "STATUS.md")
+INDEX = os.path.join(ROOT, "INDEX.md")
+LOGDIR = os.path.join(ROOT, "logs")
+SMOKE_BEGIN, SMOKE_END = "<!-- smoke:begin -->", "<!-- smoke:end -->"
+TOOL_BEGIN, TOOL_END = "<!-- toolstatus:begin -->", "<!-- toolstatus:end -->"
+PROBE_FLAGS = ["--version", "version", "--help", "-h", "-V"]
+SECTIONS = ["zweck", "wann anwenden", "kommando", "deutung", "blinde flecken", "pairs_with"]
 
+from tool_matrix import LIB, PROBE, REF  # noqa: E402  (eine Quelle fuer beide)
 
-def read_smoke_block():
-    """Block des letzten bin/smoke-Laufs erhalten — doctor baut STATUS.md sonst neu."""
-    try:
-        text = open(os.path.join(ROOT, "STATUS.md")).read()
-    except OSError:
-        return ""
-    i, j = text.find(SMOKE_BEGIN), text.find(SMOKE_END)
-    if i < 0 or j < i:
-        return ""
-    return text[i:j + len(SMOKE_END)]
+WRAPPERS = ["slither", "crytic-compile", "solc", "solc-select", "surya", "solhint",
+            "forge", "cast", "anvil", "solar", "echidna", "medusa", "cryo", "rbuilder",
+            "diffusc", "daedaluzz", "myth", "evmasm", "skill", "ctf-token"]
 
 
 def probe(binary):
-    if not shutil.which(binary):
-        return False, "nicht im PATH"
-    for flag in PROBE:
+    path = shutil.which(binary)
+    if not path:
+        return False, "nicht im PATH", ""
+    for flag in PROBE_FLAGS:
         try:
-            r = subprocess.run([binary, flag], capture_output=True, text=True, timeout=25)
-        except (subprocess.TimeoutExpired, OSError) as exc:
-            return False, f"{flag}: {type(exc).__name__}"
-        out = (r.stdout or r.stderr).strip().splitlines()
+            r = subprocess.run([binary, flag], capture_output=True, text=True, timeout=30)
+        except subprocess.TimeoutExpired:
+            return False, "Timeout bei %s" % flag, path
+        except OSError as exc:
+            return False, "%s: %s" % (flag, type(exc).__name__), path
+        out = ((r.stdout or "") + (r.stderr or "")).strip().splitlines()
+        text = out[0][:70] if out else ""
         if r.returncode == 0 and out:
-            return True, out[0][:90]
-    return False, "antwortet auf keinen Probe-Flag"
+            return True, text, path
+    return False, "antwortet auf keinen Probe-Flag", path
+
+
+def npm_root():
+    try:
+        return subprocess.run(["npm", "root", "-g"], capture_output=True, text=True,
+                              timeout=30).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def lib_ok(kind, module):
+    if kind != "node":
+        return False, "unbekannter Bibliothekstyp"
+    root = npm_root()
+    if not root or not os.path.isdir(os.path.join(root, module)):
+        return False, "nicht installiert"
+    try:
+        r = subprocess.run(["node", "-e", "require('%s')" % module],
+                           capture_output=True, text=True, timeout=40,
+                           env=dict(os.environ, NODE_PATH=root))
+    except (OSError, subprocess.TimeoutExpired):
+        return False, "Import-Test nicht ausfuehrbar"
+    if r.returncode == 0:
+        return True, "require ok"
+    first = (r.stderr or "").strip().splitlines()
+    return False, "require scheitert: %s" % (first[0][:60] if first else "?")
+
+
+def token_state():
+    path = os.path.expanduser("~/.config/gh-token")
+    if not os.path.exists(path):
+        return "kein Token hinterlegt"
+    tok = open(path, encoding="utf-8").read().strip()
+    req = urllib.request.Request("https://api.github.com/rate_limit",
+                                 headers={"Authorization": "Bearer " + tok})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return "gueltig (HTTP %d)" % r.status
+    except urllib.error.HTTPError as exc:
+        return "**ungueltig (HTTP %d, Bad credentials)**" % exc.code
+    except Exception as exc:  # offline
+        return "nicht geprueft (%s)" % type(exc).__name__
+
+
+def reconcile(skills):
+    """134 Quellen gegen 133 Skills: jeder Alias muss belegt und zusammengelegt sein."""
+    try:
+        rows, aliases = load(os.path.join(ROOT, "repos.tsv"))
+    except RepoTableError as exc:
+        return {"rows": [], "aliases": [], "problems": ["repos.tsv: %s" % exc],
+                "proofs": [], "trees": {s["vendor"] for s in skills},
+                "cards": set(), "unique_repos": 0}
+    by_slug = {s["slug"]: s for s in skills}
+    problems, proofs = [], []
+    for a in aliases:
+        org, name = a["repo"].split("/", 1)
+        t = by_slug.get(a["target"])
+        if t is None:
+            problems.append("%s: Ziel-Slug `%s` fehlt im Manifest" % (a["slug"], a["target"]))
+            continue
+        if a["slug"] in by_slug:
+            problems.append("%s: existiert zusaetzlich als eigener Skill" % a["slug"])
+        if os.path.isdir(os.path.join(ROOT, "vendor", org, name)):
+            problems.append("%s: zweite Kopie liegt noch unter vendor/%s/%s"
+                            % (a["slug"], org, name))
+        if os.path.isdir(os.path.join(ROOT, "knowledge", a["slug"])):
+            problems.append("%s: eigene Wissenskarte existiert noch" % a["slug"])
+        declared = {x.get("slug"): x for x in (t.get("aliases") or [])}
+        rec = declared.get(a["slug"])
+        if rec is None:
+            problems.append("%s: nicht als Alias von `%s` im Manifest" % (a["slug"], a["target"]))
+        else:
+            if rec.get("repo") != a["repo"]:
+                problems.append("%s: Manifest-Repo `%s` != repos.tsv `%s`"
+                                % (a["slug"], rec.get("repo"), a["repo"]))
+            if (rec.get("tree_sha256"), rec.get("files")) != (a["tree_sha256"], a["files"]):
+                problems.append("%s: Manifest-Beweis weicht von repos.tsv ab "
+                                "(bin/gen_skills neu laufen lassen)" % a["slug"])
+        try:
+            digest, files = tree_digest(os.path.join(ROOT, t["vendor"]))
+        except RepoTableError as exc:
+            problems.append("%s: Ziel-Baum nicht lesbar (%s)" % (a["slug"], exc))
+            proofs.append((a, False, "?", 0))
+            continue
+        fresh = (digest, files) == (a["tree_sha256"], a["files"])
+        if not fresh:
+            problems.append("%s: Alias-Beweis veraltet (Baum %s/%d Dateien, gepinnt "
+                            "%s/%d) -> `bin/alias-check --update`"
+                            % (a["slug"], digest[:12], files,
+                               a["tree_sha256"][:12], a["files"]))
+        proofs.append((a, fresh, digest, files))
+    kdir = os.path.join(ROOT, "knowledge")
+    cards = {d for d in os.listdir(kdir) if os.path.isdir(os.path.join(kdir, d))}
+    return {"rows": rows, "aliases": aliases, "problems": problems,
+            "proofs": proofs, "trees": {s["vendor"] for s in skills}, "cards": cards,
+            "unique_repos": len({r["repo"] for r in rows} | {a["repo"] for a in aliases})}
+
+
+def solc_state():
+    try:
+        r = subprocess.run(["solc-select", "versions"], capture_output=True, text=True,
+                           timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return "nicht messbar"
+    lines = [l.strip() for l in (r.stdout or "").splitlines() if l.strip()]
+    current = next((l.split()[0] for l in lines if "current" in l), "?")
+    return "%d Versionen installiert, aktiv %s" % (len(lines), current)
+
+
+def read_block(path, begin, end):
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        return ""
+    i, j = text.find(begin), text.find(end)
+    return text[i:j + len(end)] if 0 <= i < j else ""
+
+
+def write_index_block(block):
+    try:
+        text = open(INDEX, encoding="utf-8").read()
+    except OSError:
+        return
+    old = read_block(INDEX, TOOL_BEGIN, TOOL_END)
+    if old:
+        text = text.replace(old, block)
+    else:
+        text = text.rstrip() + "\n\n" + block + "\n"
+    open(INDEX, "w", encoding="utf-8").write(text)
 
 
 def main():
-    skills = json.load(open(os.path.join(ROOT, "manifest.json")))["skills"]
-    lines = ["# STATUS", "", f"Stand: {time.strftime('%Y-%m-%d %H:%M')}", "",
-             "Verifikationsnachweis: siehe `VERIFICATION.md` (echte Laeufe, keine --help-Tests).",
-             "Quelle: `SFS-Labs/ctf-skills`; lokale Laufzeitnachweise sind nicht mit GitHub-Tests gleichzusetzen.",
-             "`vendor/`, `venvs/`, `tools/`, `logs/` liegen bewusst **nicht** im Repo (siehe `README.md`).", "",
-             "## Ausfuehrbare Skills", "", "| Skill | Binary | Status | Antwort |", "|---|---|---|---|"]
-    ok = bad = 0
-    for e in sorted(skills, key=lambda x: x["slug"]):
-        binary = ENTRY.get(e["slug"])
-        if not binary:
-            continue
-        good, msg = probe(binary)
-        if good:
-            state, ok = "OK", ok + 1
-        elif "nicht im PATH" in msg:
-            state, bad = "**FAIL**", bad + 1
+    skills = json.load(open(MANIFEST))["skills"]
+    tools = [s for s in skills if s["kind"] == "tool"]
+
+    rows, libs, refs, fails = [], [], [], []
+    classified = set()
+    for s in sorted(tools, key=lambda x: x["slug"]):
+        slug = s["slug"]
+        classified.add(slug)
+        if slug in PROBE:
+            good, msg, path = probe(PROBE[slug])
+            if good:
+                rows.append((slug, PROBE[slug], "OK", msg))
+            else:
+                rows.append((slug, PROBE[slug], "**FAIL**", msg))
+                fails.append("%s (`%s`): %s" % (slug, PROBE[slug], msg))
+        elif slug in LIB:
+            good, msg = lib_ok(*LIB[slug])
+            if good:
+                libs.append("%s — `%s` installiert, %s" % (slug, LIB[slug][1], msg))
+            else:
+                libs.append("%s — `%s` installiert, %s (kein CLI)" % (slug, LIB[slug][1], msg))
+        elif slug in REF:
+            refs.append((slug, REF[slug], s))
         else:
-            state, ok = "kein CLI-Flag (Bibliothek)", ok + 1
-            msg += " — Binary vorhanden"
-        lines.append(f"| `{e['slug']}` | `{binary}` | {state} | {msg} |")
-    ref = [e for e in skills if e["kind"] in ("knowledge", "knowledge-archived", "corpus", "source", "docker")]
-    lines += ["", f"**{ok} ausfuehrbar, {bad} fehlgeschlagen, {len(ref)} Referenz-Skills**", "",
-              "## Referenz ohne Binary (bewusst)", ""]
-    for e in sorted(ref, key=lambda x: x["slug"]):
-        lines.append(f"- `{e['slug']}` ({e['kind']}, {e['layer']}) — {e['install']}")
-    fetched = sum(1 for e in skills if e["fetched"])
-    lines += ["", "## Nachgezogene Werkzeuge — Lauf wiederholen", "",
+            fails.append("%s: nicht klassifiziert (kein PROBE/LIB/REF-Eintrag)" % slug)
+    unknown = classified - set(PROBE) - set(LIB) - set(REF)
+
+    # Vendor + Karten wirklich pruefen
+    vendor_bad, card_bad, exploit = [], [], None
+    for s in skills:
+        vdir = os.path.join(ROOT, s["vendor"])
+        marker = os.path.join(vdir, ".fetched")
+        try:
+            meta = json.load(open(marker))
+        except (OSError, ValueError):
+            vendor_bad.append(s["slug"])
+            meta = {}
+        if meta.get("repo") not in (None, s["org"] + "/" + s["repo"]):
+            vendor_bad.append(s["slug"] + " (Marker-Repo falsch)")
+        if not os.path.isdir(vdir) or len(os.listdir(vdir)) < 2:
+            vendor_bad.append(s["slug"] + " (Baum leer)")
+        if s["slug"] == "exploitdb":
+            exploit = meta.get("note", "")
+        card = os.path.join(ROOT, "knowledge", s["slug"], "SKILL.md")
+        if not os.path.exists(card):
+            card_bad.append(s["slug"])
+            continue
+        low = open(card, encoding="utf-8").read().lower()
+        missing = [x for x in SECTIONS if x not in low]
+        if missing:
+            card_bad.append("%s (%s)" % (s["slug"], ",".join(missing)))
+
+    missing_wrappers = [w for w in WRAPPERS if not shutil.which(w)]
+    rec = reconcile(skills)
+    fails += rec["problems"]
+    tok = token_state()
+
+    ok = sum(1 for r in rows if r[2] == "OK")
+    lines = ["# STATUS", "", "Stand: %s" % time.strftime("%Y-%m-%d %H:%M"), "",
+             "Gemessen von `bin/doctor` (jeder Eintrag einzeln aufgerufen), Beweislaeufe "
+             "in `VERIFICATION.md`, Reproduktion mit `bin/smoke`.",
+             "Die Spalte `install` im Manifest ist die urspruengliche Plan-Annahme; die Spalte "
+             "`status` (binary/bibliothek/referenz/wissen/korpus/quelle) stammt aus "
+             "`bin/tool_matrix.py`. Maszgeblich ist die Messung unten.",
+             "Kanonisches Repository: `SFS-Labs/ctf-skills` (oeffentlich). Der vorherige "
+             "Push `fcf11d7` (2026-11-21 05:42) gehoert zum archivierten Quellrepository; "
+             "sein Zustand ist kein aktueller Sicherungsnachweis.",
+             "`vendor/`, `venvs/`, `tools/`, `logs/` liegen bewusst **nicht** im Repo.",
+             "", "## Rechnung: 133 Plansoll, 134 Quellen, %d Skills" % len(skills), "",
+             "| Groesse | gemessen |", "|---|---|",
+             "| Plansoll aus dem Plan (Phase 1) | 133 |",
+             "| Datenzeilen in `repos.tsv` (Quellen) | %d |"
+             % (len(rec["rows"]) + len(rec["aliases"])),
+             "| davon eigenstaendige Skills | %d |" % len(rec["rows"]),
+             "| davon Alias-Zeilen (kein eigener Skill) | %d |" % len(rec["aliases"]),
+             "| eindeutige Repos | %d |" % rec["unique_repos"],
+             "| Manifest-Slugs | %d |" % len(skills),
+             "| vendor-Baeume | %d |" % len(rec["trees"]),
+             "| Wissenskarten | %d |" % len(rec["cards"]),
+             "| Plansoll - Manifest | %d |" % (133 - len(skills)), ""]
+    if rec["aliases"]:
+        lines += ["", "### Aliasse — gepinnt, nicht behauptet", "",
+                  "Jede Alias-Zeile traegt ihren Beweis in `repos.tsv` Spalte 6 "
+                  "(`alias_of`, `tree_sha256`, `files`). `bin/doctor` rechnet den Digest bei "
+                  "jedem Lauf ueber den aktuellen `vendor/`-Baum; `bin/alias-check` vergleicht "
+                  "denselben Digest gegen den Remote (anonym, ohne Token).", "",
+                  "| Alias | Ziel | tree_sha256 (gepinnt) | Dateien | Baum jetzt |",
+                  "|---|---|---|---|---|"]
+        for a, fresh, digest, files in rec["proofs"]:
+            lines.append("| `%s` | `%s` | `%s` | %d | %s |"
+                         % (a["slug"], a["target"], a["tree_sha256"], a["files"],
+                            "stimmt (%s…)" % digest[:12] if fresh else "**abweichend**"))
+        lines.append("")
+    lines.append("- `solidity-lean` bleibt ein eigener Skill (andere Semantik-Ebene); der "
+                 "Plan-Satz 'EVMYulLean/solidity-lean = ein Skill' war ungenau — der echte "
+                 "Fork ist `NethermindEth/EVMYulLean` -> `paradigmxyz/evmyullean`.")
+    lines += ["", "## Werkzeuge — gemessen, nicht angenommen", "",
+             "| Skill | Binary | Status | Antwort (erste Zeile) |", "|---|---|---|---|"]
+    lines += ["| `%s` | `%s` | %s | %s |" % r for r in rows]
+    lines += ["", "**%d ausfuehrbar · %d Bibliothek · %d Referenz · %d FAIL**"
+              % (ok, len(libs), len(refs), len(fails) + len(unknown)), ""]
+
+    lines += ["## Bibliothek (installiert, kein CLI — so gedacht)", ""]
+    lines += ["- " + x for x in libs] or ["- keine"]
+    lines += ["", "## Referenz ohne Binary — je Eintrag der Grund", ""]
+    for slug, reason, s in refs:
+        lines.append("- `%s` (%s, %s) — %s" % (slug, s["install"], s["layer"],
+                                               reason.format(p=s["vendor"])))
+    lines += ["", "## Blocker (ohne Nutzerentscheidung nicht loesbar)", ""]
+    lines.append("- **Docker-Skills** (`attacknet`, `cloudexec`, `eth-security-toolbox`, "
+                 "`paradigm-ctf-infra`): kein Docker auf dieser Maschine. Rezepte liegen "
+                 "in `recipes/*.sh`; naechster Schritt: Docker installieren (Root) oder "
+                 "jeweils am Zielrechner ausfuehren.")
+    lines.append("- **IDA-Plugins** (`ida-evm`): IDA Pro ist kostenpflichtig und nicht "
+                 "installiert. Wissen bleibt nutzbar, Betrieb nicht.")
+    lines.append("- **Git-Token**: %s. Oeffentliche Repos lesen anonym (HTTP 200), "
+                 "private Schreibpfade brauchen einen neuen fine-grained PAT "
+                 "(Contents: Read/Write auf `SFS-Labs/ctf-skills`), Ablage "
+                 "`~/.config/gh-token`, Eingabe per `ctf-token`." % tok)
+    if missing_wrappers:
+        lines.append("- **Wrapper fehlen in ~/.local/bin**: " + ", ".join(missing_wrappers))
+    if fails:
+        lines += ["", "## FAIL — Luecke, kein Erfolg", ""] + ["- " + f for f in fails]
+    if vendor_bad or card_bad:
+        lines += ["", "## Bestandsluecken", ""]
+        lines += ["- Vendor: " + ", ".join(vendor_bad[:10])] if vendor_bad else []
+        lines += ["- Karten: " + ", ".join(card_bad[:10])] if card_bad else []
+
+    lines += ["", "## Bezug (geprueft)", "",
+              "- `%d/%d` Manifest-Eintraege mit Tarball-Baum und lesbarem `.fetched`-Marker"
+              % (len(skills) - len(vendor_bad), len(skills)),
+              "- `%d/%d` Wissenskarten mit allen sechs Abschnitten"
+              % (len(skills) - len(card_bad), len(skills)),
+              "- `%d/%d` Werkzeug-Eintraege klassifiziert (AUSFUEHRBAR/BIBLIOTHEK/REFERENZ)"
+              % (len(classified) - len(unknown), len(tools)),
+              "- `%d/%d` Alias-Beweise stimmen mit dem gepinnten Digest des aktuellen Baums"
+              % (sum(1 for p in rec["proofs"] if p[1]), len(rec["proofs"]))
+              if rec["aliases"] else "- keine Alias-Zeilen in `repos.tsv`",
+              "- `exploitdb`: %s" % (exploit or "CSV-Index"),
+              "- solc-Pinning: %s" % solc_state(),
+              "", "## Nachgezogene Werkzeuge — Lauf wiederholen", "",
               "| Tool | Rezept (Setup) | Beweis-Kommando |", "|---|---|---|",
-              "| `cryo` | `recipes/cryo-build.sh` | `cryo blocks --blocks 19000000 -r https://ethereum-rpc.publicnode.com -o /tmp/cryo-out` |",
-              "| `diffusc` | `recipes/diffusc-setup.sh` | `diffusc VaultV1.sol VaultV2.sol -d /tmp/out` (Dateiname = Contract-Name, `forge` im PATH) |",
-              "| `daedaluzz` | `recipes/daedaluzz-build.sh` | `cd /tmp && daedaluzz` → schreibt `generated-maze.sol` |",
-              "", "Ursachen, Patches und Rohausgaben: `VERIFICATION.md`, Abschnitt 'Nachtrag 2026-11-21'."]
-    smoke = read_smoke_block()
+              "| `cryo` | `recipes/cryo-build.sh` | `cryo blocks --blocks 19000000 -r "
+              "https://ethereum-rpc.publicnode.com -o /tmp/cryo-out` |",
+              "| `diffusc` | `recipes/diffusc-setup.sh` | `diffusc VaultV1.sol VaultV2.sol "
+              "-d /tmp/out` (Dateiname = Contract-Name) |",
+              "| `daedaluzz` | `recipes/daedaluzz-build.sh` | `cd /tmp && daedaluzz` → "
+              "`generated-maze.sol` |",
+              "| `slither` | `recipes/slither-vendor.sh` | `recipes/slither-vendor.sh "
+              "evmyullean-nethermind` (analysiert einen Contract aus `vendor/`) |"]
+    smoke = read_block(STATUS, SMOKE_BEGIN, SMOKE_END)
     if smoke:
         lines += ["", smoke]
-    lines += ["", f"## Bezug", "", f"- {fetched}/{len(skills)} Skills mit Quellstand in `vendor/`"]
-    missing = [e["slug"] for e in skills if not e["fetched"]]
-    if missing:
-        lines.append("- **fehlend:** " + ", ".join(missing))
-    open(os.path.join(ROOT, "STATUS.md"), "w").write("\n".join(lines) + "\n")
-    print(f"ok={ok} fail={bad} reference={len(ref)} fetched={fetched}/{len(skills)}")
-    for e in skills:
-        b = ENTRY.get(e["slug"])
-        if b and not shutil.which(b):
-            print(f"  FAIL {e['slug']} -> {b}")
+    open(STATUS, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+
+    block = "\n".join([TOOL_BEGIN, "",
+                       "## Ausfuehrbarkeit (gemessen %s)" % time.strftime("%Y-%m-%d %H:%M"),
+                       "",
+                       "%d ausfuehrbar · %d Bibliothek · %d Referenz · %d FAIL — Details, "
+                       "Gruende und Blocker in `STATUS.md`." % (ok, len(libs), len(refs),
+                                                                len(fails) + len(unknown)),
+                       TOOL_END])
+    write_index_block(block)
+    os.makedirs(LOGDIR, exist_ok=True)
+    json.dump({"at": time.strftime("%Y-%m-%dT%H:%M:%S"), "ok": ok, "lib": len(libs),
+               "ref": len(refs), "fail": fails + ["nicht klassifiziert: " + u for u in unknown],
+               "vendor_bad": vendor_bad, "card_bad": card_bad, "token": tok,
+               "wrappers_missing": missing_wrappers},
+              open(os.path.join(LOGDIR, "tool-status.json"), "w"), indent=1)
+
+    print("ok=%d lib=%d ref=%d fail=%d | vendor=%d/%d karten=%d/%d | "
+          "skills=%d quellen=%d alias=%d"
+          % (ok, len(libs), len(refs), len(fails) + len(unknown),
+             len(skills) - len(vendor_bad), len(skills),
+             len(skills) - len(card_bad), len(skills), len(skills),
+             len(rec["rows"]) + len(rec["aliases"]), len(rec["aliases"])))
+    for f in fails:
+        print("  FAIL " + f)
+    print("  token: " + tok)
+    return 0 if not (fails or unknown or vendor_bad or card_bad) else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

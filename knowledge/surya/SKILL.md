@@ -29,7 +29,7 @@ Graph/Report als Landkarte; Aussagen über Laufzeitverhalten sind daraus nicht a
 - JS-Werkzeuge sehen nur, was sie parsen; Build-/Deploy-Kontext fehlt oft.
 - kennt die Absicht des Autors nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `crytic-compile`, `solc-select`, `solar`, `slither`, `bytecode-verifier`, `slither-mcp`.
 Nach diesem Skill weiter mit Layer L2.
 

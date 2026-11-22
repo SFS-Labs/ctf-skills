@@ -29,7 +29,7 @@ Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestäti
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - sagt nichts ueber Code-Korrektheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `cryo`, `transaction-decoder`, `rbuilder`, `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`.
 Nach diesem Skill weiter mit Layer L8.
 

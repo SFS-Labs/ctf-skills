@@ -29,7 +29,7 @@ Semantik-Nachschlagewerk: ‚was tut die EVM hier wirklich'.
 - kein fertiges Werkzeug; Referenz zum Nachschlagen von Semantik.
 - kennt die Absicht des Autors nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `crytic-compile`, `solc-select`, `surya`, `solar`, `slither`, `surya`, `bytecode-verifier`, `slither-mcp`.
 Nach diesem Skill weiter mit Layer L2.
 

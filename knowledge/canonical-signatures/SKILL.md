@@ -13,6 +13,8 @@ pairs_with: [evm-cfg-builder, pyevmasm, etheno, abi-guesser, diffusc, oz-upgrade
 
 **Repo:** `openchainxyz/canonical-signatures` · **Layer:** L5 · **Klasse:** JS · **Bezogen:** ja (branch `main`, Lizenz MIT)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo
+
 ## Zweck
 Signatur-/Selector-Datenbank.
 
@@ -20,16 +22,16 @@ Signatur-/Selector-Datenbank.
 wenn kein Quellcode existiert (Bytecode-only, Proxy, fremdes Deployment).
 
 ## Kommando
-`canonical-signatures --help` (npm global)
+kein Kommando — kein npm-Paket dieses Namens (Registry 404); Inhalt ist Web-App/Repo; Quelle: `vendor/openchainxyz/canonical-signatures`
 
 ## Deutung der Ausgabe
-Graph/Report als Landkarte; Aussagen über Laufzeitverhalten sind daraus nicht ableitbar.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - JS-Werkzeuge sehen nur, was sie parsen; Build-/Deploy-Kontext fehlt oft.
 - Off-Chain-Verhalten und Deployment-Kontext fehlen.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `evm-cfg-builder`, `pyevmasm`, `etheno`, `abi-guesser`, `diffusc`, `oz-upgrades`, `chainsecurity-deployment-validation`, `bytecode-verifier`.
 Nach diesem Skill weiter mit Layer L6.
 

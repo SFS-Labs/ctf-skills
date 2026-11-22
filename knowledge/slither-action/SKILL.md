@@ -29,7 +29,7 @@ Treffer sind Ähnlichkeit, kein Beweis.
 - Datenmenge ohne Semantik: Muster erkennen, nicht blind uebernehmen.
 - sieht zeitliche, oekonomische und Cross-Contract-Fehler nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `slither`, `surya`, `bytecode-verifier`, `slither-mcp`, `echidna`, `medusa`, `properties`, `scribble`.
 Nach diesem Skill weiter mit Layer L3.
 

@@ -7,7 +7,7 @@
 This repository combines two complementary layers:
 
 - **CTF Agent Skills**: the existing top-level `ctf-*/SKILL.md` and `solve-challenge/SKILL.md` skill packs, derived from [Lukasz Jagiello's ctf-skills](https://github.com/ljagiello/ctf-skills). Their original [MIT license and copyright attribution](LICENSE) remain intact.
-- **SFS-Labs Security Skill Factory**: **134 reference/knowledge cards** under `knowledge/<slug>/SKILL.md`, with a local router, recipes, manifests, and optional security benchmark gateways. These 134 cards are **not** 134 installed or independently executable security tools.
+- **SFS-Labs Security Skill Factory**: **133 unique reference/knowledge cards from 134 sources (one verified alias)** under `knowledge/<slug>/SKILL.md`, with a local router, recipes, manifests, and optional security benchmark gateways. These cards are **not** 134 installed or independently executable security tools.
 
 ### Factory quick start (offline, no tools installed)
 
@@ -20,13 +20,15 @@ python3 bin/skill find reentrancy
 python3 bin/skill plan "solidity upgrade"
 python3 -m unittest discover -s benchmarks/tests -v
 python3 -m pytest tests -q
+python3 bin/skill-orchestrator.py selfcheck
+bash install-freebuff.sh  # dry-run only; --apply changes local skill files
 ```
 
 `bin/skill` reads the checked-out repository's `manifest.json`; browsing the cards and generating a plan does not require downloading third-party tools. The factory's original local-runtime snapshots in [STATUS.md](STATUS.md) and [VERIFICATION.md](VERIFICATION.md) are historical evidence from its former environment, **not** independent verification on this repository's CI runner.
 
 | Factory path | Purpose |
 | --- | --- |
-| `knowledge/`, `INDEX.md`, `MANIFEST.yaml`, `manifest.json`, `repos.tsv` | 134 references, layers, metadata, and skill discovery |
+| `knowledge/`, `INDEX.md`, `MANIFEST.yaml`, `manifest.json`, `repos.tsv` | 133 unique cards, 134 sources (one alias), layers, metadata, and discovery |
 | `bin/skill` | Offline list/show/find/plan router |
 | `bin/fetch`, `bin/install_bin`, `bin/doctor`, `bin/gen_skills` | Optional local provisioning, diagnostics, and regeneration |
 | `bin/smoke`, `recipes/`, `corpora/` | Optional local test harnesses and build recipes; some need external binaries |
@@ -35,6 +37,12 @@ python3 -m pytest tests -q
 Factory tools requiring network access can download large third-party repositories or install binaries. Do not run `bin/fetch`, `bin/install_bin`, or `bin/smoke` merely to browse the knowledge cards. `bin/push` is an optional authenticated write utility, not a backup service; publishing to this **public** repository requires the explicit `--allow-public` flag and a suitable GitHub token. No secrets, `vendor/` trees, virtual environments, local logs, or generated tool outputs belong in Git.
 
 See [Factory integration and verification](docs/FACTORY_INTEGRATION.md) for migration scope, tests, and operational boundaries.
+
+### V8/V9 runtime and Copilot delegation
+
+The project-local [Freebuff V8 skill](.agents/skills/ctf-skill-index-v8/SKILL.md), [adaptive orchestrator](bin/skill-orchestrator.py), [runtime acceptance](docs/FREEBUFF-V8-RUNTIME-ACCEPTANCE.md), and [Copilot delegation adapter](bin/copilot-delegate.py) are included. Routing and `selfcheck` run offline; real contract execution requires a locally authorized target, installed tools and `--allow-exec`. The installer defaults to this checkout; set `SFS_CTF_SKILLS_ROOT` for a different target directory. It never runs automatically from GitHub CI.
+
+Copilot delegation is gated off by default (`paid_delegation_allowed=false`, `credits_exhausted=true`); no real agent assignment or Proficiency evidence is asserted. The archived original [V9 draft PR #6](https://github.com/SFS-Labs/ctf-skill-factory/pull/6) is the source of this port, not the active review location.
 
 ## Installation
 

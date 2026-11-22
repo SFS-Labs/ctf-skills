@@ -29,7 +29,7 @@ Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte I
 - schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.
 - findet keine Altlasten, die schon immer da waren.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `oz-upgrades`, `chainsecurity-deployment-validation`, `bytecode-verifier`, `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`.
 Nach diesem Skill weiter mit Layer L7.
 

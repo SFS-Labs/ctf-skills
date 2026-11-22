@@ -29,7 +29,7 @@ Assertion-Verletzung mit Call-Sequenz; Coverage sagt, was überhaupt erreichbar 
 - wie RS: Qualitaet der Properties entscheidet, nicht die Worker-Zahl.
 - findet nur, wofuer jemand eine Invariante formuliert hat.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `echidna`, `properties`, `scribble`, `diligence-fuzzing`, `mythril`, `manticore`.
 Nach diesem Skill weiter mit Layer L4.
 

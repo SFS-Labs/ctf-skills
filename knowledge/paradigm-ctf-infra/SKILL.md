@@ -13,6 +13,8 @@ pairs_with: [not-so-smart-contracts, smart-contract-best-practices, slowmist-kno
 
 **Repo:** `paradigmxyz/paradigm-ctf-infrastructure` · **Layer:** L8 · **Klasse:** DK · **Bezogen:** ja (branch `main`, Lizenz None)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** braucht Docker; auf dieser Maschine nicht lauffaehig
+
 ## Zweck
 Challenge-Deployment-Vorlage (Docker).
 
@@ -23,13 +25,13 @@ durchgehend: Musterabgleich gegen bekannte Bug-Klassen und Audit-Erfahrung.
 Docker erforderlich — Rezept liegt in `recipes/paradigm-ctf-infra.sh`, hier nicht lauffähig
 
 ## Deutung der Ausgabe
-—
+keine Ausgabe — auf dieser Maschine nicht lauffaehig; Rezept in `recipes/paradigm-ctf-infra.sh`.
 
 ## Blinde Flecken
 - braucht Docker; auf dieser Maschine nicht lauffaehig -> nur Referenz.
 - Aktualitaet und projektspezifische Besonderheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`, `seal-911`, `seal-frameworks`, `blockchain-security-contacts`.
 Nach diesem Skill weiter mit Layer L9.
 

@@ -29,7 +29,7 @@ Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte I
 - schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.
 - findet nur, wofuer jemand eine Invariante formuliert hat.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `medusa`, `properties`, `scribble`, `diligence-fuzzing`, `mythril`, `manticore`.
 Nach diesem Skill weiter mit Layer L4.
 

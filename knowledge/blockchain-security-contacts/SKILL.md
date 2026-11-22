@@ -29,7 +29,7 @@ Treffer sind Ähnlichkeit, kein Beweis.
 - Datenmenge ohne Semantik: Muster erkennen, nicht blind uebernehmen.
 - ist kein Analysewerkzeug.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `seal-911`, `seal-frameworks`, `slither`, `surya`, `bytecode-verifier`, `slither-mcp`.
 Nach diesem Skill weiter mit Layer L2.
 

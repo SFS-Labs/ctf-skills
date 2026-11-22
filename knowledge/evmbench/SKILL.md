@@ -13,6 +13,8 @@ pairs_with: [not-so-smart-contracts, smart-contract-best-practices, slowmist-kno
 
 **Repo:** `paradigmxyz/evmbench` · **Layer:** L8 · **Klasse:** PY · **Bezogen:** ja (branch `main`, Lizenz Apache-2.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** Web-App (frontend/backend/assets), kein CLI
+
 ## Zweck
 Benchmark mit Ground Truth.
 
@@ -20,16 +22,16 @@ Benchmark mit Ground Truth.
 durchgehend: Musterabgleich gegen bekannte Bug-Klassen und Audit-Erfahrung.
 
 ## Kommando
-`evmbench` (via `uv tool`); Hilfe: `evmbench --help`
+kein Kommando — Web-App (frontend/backend/assets), kein CLI; Quelle: `vendor/paradigmxyz/evmbench`
 
 ## Deutung der Ausgabe
-Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestätigt wird über L3 (Counterexample) oder L4 (Pfad).
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - Aktualitaet und projektspezifische Besonderheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`, `seal-911`, `seal-frameworks`, `blockchain-security-contacts`.
 Nach diesem Skill weiter mit Layer L9.
 

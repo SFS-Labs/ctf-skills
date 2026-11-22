@@ -29,7 +29,7 @@ Semantik-Nachschlagewerk: ‚was tut die EVM hier wirklich'.
 - kein fertiges Werkzeug; Referenz zum Nachschlagen von Semantik.
 - sagt nichts ueber Code-Korrektheit.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `cryo`, `mev-inspect-py`, `transaction-decoder`, `rbuilder`, `not-so-smart-contracts`, `smart-contract-best-practices`, `slowmist-knowledge-base`, `ethernaut`.
 Nach diesem Skill weiter mit Layer L8.
 

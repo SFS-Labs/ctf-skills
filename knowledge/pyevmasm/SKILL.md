@@ -29,7 +29,7 @@ Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestäti
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - Off-Chain-Verhalten und Deployment-Kontext fehlen.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `evm-cfg-builder`, `etheno`, `abi-guesser`, `canonical-signatures`, `diffusc`, `oz-upgrades`, `chainsecurity-deployment-validation`, `bytecode-verifier`.
 Nach diesem Skill weiter mit Layer L6.
 

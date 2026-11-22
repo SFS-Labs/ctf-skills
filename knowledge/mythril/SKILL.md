@@ -29,7 +29,7 @@ Exit-Code plus Findings/Detektor-IDs. Jeder Treffer ist eine Hypothese; bestäti
 - Findings sind Hypothesen; kein Beweis ohne Gegenbeispiel oder Pfad.
 - Pfad-Explosion, Loops und Hash-/Krypto-Logik brechen es.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `manticore`, `evm-cfg-builder`, `pyevmasm`, `etheno`, `abi-guesser`, `canonical-signatures`.
 Nach diesem Skill weiter mit Layer L5.
 

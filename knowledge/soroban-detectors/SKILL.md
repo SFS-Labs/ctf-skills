@@ -13,6 +13,8 @@ pairs_with: [slither, surya, bytecode-verifier, slither-mcp, echidna, medusa, pr
 
 **Repo:** `OpenZeppelin/soroban-security-detectors-sdk` · **Layer:** L2 · **Klasse:** RS · **Bezogen:** ja (branch `main`, Lizenz AGPL-3.0)
 
+> **Referenzkarte — kein Betrieb auf dieser Maschine.** kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/OpenZeppelin/soroban-security-detectors-sdk mit cargo/go noetig
+
 ## Zweck
 Stellar/Soroban-Detektoren.
 
@@ -20,16 +22,16 @@ Stellar/Soroban-Detektoren.
 Breite zuerst: alle In-Scope-Artefakte statisch abklopfen.
 
 ## Kommando
-`soroban-detectors --help` (Release-Binary in ~/.local/bin, falls vorhanden)
+kein Kommando — kein Linux-Binary im letzten Release (API-Abfrage 2026-11-21); Bau aus vendor/OpenZeppelin/soroban-security-detectors-sdk mit cargo/go noetig; Quelle: `vendor/OpenZeppelin/soroban-security-detectors-sdk`
 
 ## Deutung der Ausgabe
-Counterexample = harter Beweis. Sauberer Lauf = nur so gut wie die formulierte Invariante.
+keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
 - schnelle Breite, aber ohne Invarianten findet der Fuzzer nichts.
 - sieht zeitliche, oekonomische und Cross-Contract-Fehler nicht.
 
-## Kombination
+## Kombination (pairs_with)
 Zusammen mit: `slither`, `surya`, `bytecode-verifier`, `slither-mcp`, `echidna`, `medusa`, `properties`, `scribble`.
 Nach diesem Skill weiter mit Layer L3.
 
