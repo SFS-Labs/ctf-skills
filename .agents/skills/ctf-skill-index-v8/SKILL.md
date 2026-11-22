@@ -97,6 +97,16 @@ Deckung der individuellen Einlageforderung. Deshalb Counterexample **und** Negat
 
 ## Grenzen dieser Maschine (gemessen)
 
+**Historischer Messstand des urspruenglichen Node-Audits, nicht der aktuelle
+Live-Toolstatus.** Fuer neue Sitzungen `bin/security-toolchain-preflight.py`
+mit dem **tatsaechlichen Freebuff-Projektroot** ausfuehren; dabei
+`v8_skill` (Tool-Repo) und `project_v8_skill` (aktives Projekt) getrennt
+pruefen. Installation, Modellaktivierung und nativer Tooltrace bleiben getrennte
+Nachweise. IDA-EVM und Ethersplay sind optionale Werkzeuge und fuer
+quellcodegestuetzte RUN-A/RUN-B-Tests nicht erforderlich;
+Ethersplay ist ein **Binary-Ninja-Plugin**, kein IDA-Plugin.
+
+
 - Docker fehlt (`attacknet`, `eth-security-toolbox`, `cloudexec`, `paradigm-ctf-infra` nur Rezept).
 - IDA fehlt (`ida-evm`, `ethersplay` nur Wissenskarte).
 - `manticore` startet nicht; `oz-foundry-upgrades` require scheitert.

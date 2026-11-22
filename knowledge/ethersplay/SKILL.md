@@ -9,17 +9,17 @@ triggers: [ethersplay, installation, plugin, manager, manual, plugins, render, f
 pairs_with: [evm-cfg-builder, pyevmasm, etheno, abi-guesser, canonical-signatures, diffusc, oz-upgrades, chainsecurity-deployment-validation]
 ---
 
-# ethersplay — IDA-EVM-Plugin (interaktiv)
+# ethersplay — Binary Ninja EVM-Plugin (interaktiv)
 
 **Repo:** `crytic/ethersplay` · **Layer:** L5 · **Klasse:** ARCH · **Bezogen:** ja (branch `master`, Lizenz AGPL-3.0)
 
 > **Referenzkarte — kein Betrieb auf dieser Maschine.** archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben
 
 ## Zweck
-IDA-EVM-Plugin (interaktiv).
+EVM-Disassembler und interaktive Analyse als Plugin für **Binary Ninja**, nicht IDA Pro.
 
 ## Wann anwenden
-wenn kein Quellcode existiert (Bytecode-only, Proxy, fremdes Deployment).
+bei Bytecode-only-Analyse, sofern Binary Ninja und kompatibles Plugin vorhanden sind. Fuer RUN-A/RUN-B mit Solidity-Quelle ist diese optionale GUI kein notwendiges Werkzeug.
 
 ## Kommando
 kein Kommando — archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben; Quelle: `vendor/crytic/ethersplay`
@@ -28,7 +28,7 @@ kein Kommando — archiviert/ueberholt — Regeln nutzen, Tool nicht betreiben; 
 keine Ausgabe — laeuft hier nicht; Nutzen ist der Quellbaum im vendor-Baum.
 
 ## Blinde Flecken
-- Original ist archiviert/ueberholt: Regeln und Ideen nutzen, nicht betreiben.
+- Diese Factory-Karte ist knowledge-archived; das ist kein selbststaendiger Nachweis, dass das Upstream-GitHub-Repository archiviert ist. Binary Ninja ist als Host-Anwendung erforderlich; bei fehlender Installation ohne Ausfuehrung nur KNOWLEDGE_ONLY.
 - Off-Chain-Verhalten und Deployment-Kontext fehlen.
 
 ## Kombination (pairs_with)
