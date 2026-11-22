@@ -182,12 +182,18 @@ class AdapterExecutionTests(unittest.TestCase):
         self.assertEqual(1, facts["falsified"])
 
     def test_missing_project_blocks_instead_of_running_in_cwd(self):
-        row = router.run_adapter("forge-test", {"project": None}, self.root / "out")
+        # The test targets missing-project validation, not the presence of Forge on CI.
+        _fake_binary(self.bindir, "forge", "#!/bin/sh\nexit 0\n")
+        with patch.dict(os.environ, {"PATH": _search_path(self.bindir)}, clear=False):
+            row = router.run_adapter("forge-test", {"project": None}, self.root / "out")
         self.assertEqual("BLOCKED", row["status"])
         self.assertIn("project", row["detail"])
 
     def test_resource_reserve_prevents_spawn(self):
-        with patch.object(router, "reserve_ok", return_value=(False, "synthetic low memory")):
+        # The reserve gate is only reached when an adapter binary is discoverable.
+        _fake_binary(self.bindir, "slither", "#!/bin/sh\nexit 0\n")
+        with patch.dict(os.environ, {"PATH": _search_path(self.bindir)}, clear=False), \
+             patch.object(router, "reserve_ok", return_value=(False, "synthetic low memory")):
             row = router.run_adapter("slither-json", {"target": str(self.target)}, self.root / "out")
         self.assertEqual("BLOCKED", row["status"])
         self.assertIn("Ressourcenreserve", row["detail"])
@@ -318,8 +324,10 @@ class PlanAndStateTests(unittest.TestCase):
             self.assertIn(state, router.STATES)
 
     def test_plan_marks_non_adapter_steps_knowledge_only(self):
-        plan = router.compose("Audit solidity reentrancy in withdraw", self.root,
-                              None, "source", 5, {"target": str(self.target)})
+        # Make the adapter available deterministically, independent of runner PATH.
+        with patch.object(router, "availability", return_value={"available": True}):
+            plan = router.compose("Audit solidity reentrancy in withdraw", self.root,
+                                  None, "source", 5, {"target": str(self.target)})
         steps = {s["id"]: s for s in plan["steps"]}
         self.assertEqual("KNOWLEDGE_ONLY", steps["SCOPE"]["status"])
         self.assertEqual("KNOWLEDGE_ONLY", steps["HYPOTHESES"]["status"])
