@@ -37,7 +37,7 @@ class PreflightTests(unittest.TestCase):
             skills = Path(tmp) / "skills"
             source = skills / ".agents/skills/ctf-skill-index-v8/SKILL.md"
             source.parent.mkdir(parents=True)
-            source.write_text("---\\nname: ctf-skill-index-v8\\n---\\n", encoding="utf-8")
+            source.write_text("---\nname: ctf-skill-index-v8\n---\n", encoding="utf-8")
             _, report = self.invoke("--project", str(project), "--skills-root", str(skills))
             self.assertEqual(report["checks"]["project_v8_skill"]["status"],
                              "MISSING_IN_ACTIVE_PROJECT")
@@ -50,7 +50,7 @@ class PreflightTests(unittest.TestCase):
             project = Path(tmp) / "challenge"
             skill = project / ".agents/skills/ctf-skill-index-v8/SKILL.md"
             skill.parent.mkdir(parents=True)
-            skill.write_text("---\\nname: ctf-skill-index-v8\\n---\\n", encoding="utf-8")
+            skill.write_text("---\nname: ctf-skill-index-v8\n---\n", encoding="utf-8")
             _, report = self.invoke("--project", str(project), "--skills-root", str(ROOT))
             self.assertEqual(report["checks"]["project_v8_skill"]["status"],
                              "PRESENT_RUNTIME_UNVERIFIED")
