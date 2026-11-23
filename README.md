@@ -1,5 +1,14 @@
 # ctf-skills
 
+<img src="https://raw.githubusercontent.com/SFS-Labs/SFS-Labs/main/branding/sfs-lockup-light.svg" width="340" alt="SFS.Labs · Applied AI · Automation · Technical Research" />
+
+**[Mathias Steinbach — Cybersecurity · Penetration Testing · CTF Engineering](https://sfs-labs.github.io/ai-knowledge-ops-lab/security-engineering.html)** · [Interactive portfolio](https://sfs-labs.github.io/ai-knowledge-ops-lab/interactive.html) · [All engineering work](https://sfs-labs.github.io/ai-knowledge-ops-lab/work.html) · [Native CTF benchmark evaluation](https://sfs-labs.github.io/ai-knowledge-ops-lab/adversarial-evaluation.html)
+
+**Latest source-backed scope (22 Nov 2026):** This repository consolidates the original open-source CTF Agent Skills with a Security Skill Factory, a V8/V9 adaptive orchestration layer and controlled local test evidence. It has **133 unique knowledge cards from 134 source records** (one verified alias), not 133 executable or independently used security scanners. The merged V8/V9 integration recorded **170 passed CI tests, 2 skips and 1,616 subtests**. A local test on an intentionally vulnerable Vault demonstrated real Surya, Slither and Forge execution, **not** an independently verified autonomous blind-test discovery. The later [toolchain preflight PR #4](https://github.com/SFS-Labs/ctf-skills/pull/4) remains a **draft** and must not be confused with merged main.
+
+**Attribution:** The original CTF skill packs are from [Lukasz Jagiello](https://github.com/ljagiello/ctf-skills) under the original MIT license. SFS.Labs integrated, expanded and tested the Factory and V8/V9 runtime with AI-assisted engineering. [Exact source parity](docs/FACTORY_INTEGRATION.md) · [Local runtime acceptance](docs/FREEBUFF-V8-RUNTIME-ACCEPTANCE.md) · [Verification boundaries](VERIFICATION.md).
+
+---
 [Agent Skills](https://agentskills.io) for solving CTF challenges — web exploitation, binary pwn, crypto, reverse engineering, forensics, OSINT, and more. Works with any tool that supports the Agent Skills spec, including [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
 ## Integrated repository: Agent Skills + Security Skill Factory
@@ -40,7 +49,7 @@ See [Factory integration and verification](docs/FACTORY_INTEGRATION.md) for migr
 
 ### V8/V9 runtime and Copilot delegation
 
-The project-local [Freebuff V8 skill](.agents/skills/ctf-skill-index-v8/SKILL.md), [adaptive orchestrator](bin/skill-orchestrator.py), [runtime acceptance](docs/FREEBUFF-V8-RUNTIME-ACCEPTANCE.md), and [Copilot delegation adapter](bin/copilot-delegate.py) are included. Routing and `selfcheck` run offline; real contract execution requires a locally authorized target, installed tools and `--allow-exec`. The installer defaults to this checkout; set `SFS_CTF_SKILLS_ROOT` for a different target directory. It never runs automatically from GitHub CI.
+The project-local [Security Automation V8 skill](.agents/skills/ctf-skill-index-v8/SKILL.md), [adaptive orchestrator](bin/skill-orchestrator.py), [runtime acceptance](docs/FREEBUFF-V8-RUNTIME-ACCEPTANCE.md), and [Copilot delegation adapter](bin/copilot-delegate.py) are included. Routing and `selfcheck` run offline; real contract execution requires a locally authorized target, installed tools and `--allow-exec`. The installer defaults to this checkout; set `SFS_CTF_SKILLS_ROOT` for a different target directory. It never runs automatically from GitHub CI.
 
 Copilot delegation is gated off by default (`paid_delegation_allowed=false`, `credits_exhausted=true`); no real agent assignment or Proficiency evidence is asserted. The archived original [V9 draft PR #6](https://github.com/SFS-Labs/ctf-skill-factory/pull/6) is the source of this port, not the active review location.
 
